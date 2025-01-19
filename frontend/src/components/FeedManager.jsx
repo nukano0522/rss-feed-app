@@ -14,10 +14,12 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Paper
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { useRssFeed } from '../hooks/useRssFeed';
 
 // デフォルト画像の定義
 const DEFAULT_IMAGES = {
@@ -31,39 +33,56 @@ const DEFAULT_IMAGES = {
 // https://aws.amazon.com/jp/blogs/aws/feed/
 // https://azure.microsoft.com/ja-jp/blog/feed/
 
-const FeedManager = ({ feeds, onAddFeed, onToggleFeed, onDeleteFeed, onEditFeed }) => {
+const FeedManager = () => {
   const [newFeed, setNewFeed] = useState({
     name: '',
     url: '',
     defaultImage: ''
   });
   const [editingFeed, setEditingFeed] = useState(null);
+  const { feeds, handleAddFeed, handleEditFeed, handleToggleFeed, handleDeleteFeed } = useRssFeed();
 
-  const handleAddFeed = () => {
+  const handleAddNewFeed = () => {
     if (newFeed.name && newFeed.url) {
-      onAddFeed(newFeed);
+      handleAddFeed({
+        name: newFeed.name,
+        url: newFeed.url,
+        enabled: true,
+        default_image: newFeed.defaultImage || null
+      });
       setNewFeed({ name: '', url: '', defaultImage: '' });
     }
   };
 
-  const handleEditClick = (feed, index) => {
-    setEditingFeed({ ...feed, index });
-    setNewFeed({ 
-      name: feed.name, 
-      url: feed.url, 
-      defaultImage: feed.defaultImage || '' 
+  const handleEditClick = (feed) => {
+    setEditingFeed(feed);
+    setNewFeed({
+      name: feed.name,
+      url: feed.url,
+      defaultImage: feed.default_image || ''
     });
   };
 
-  const handleSaveEdit = () => {
-    if (newFeed.name && newFeed.url && editingFeed !== null) {
-      const updatedFeed = {
-        ...editingFeed,
-        name: newFeed.name,
-        url: newFeed.url,
-        defaultImage: newFeed.defaultImage
-      };
-      onEditFeed(editingFeed.index, updatedFeed);
+  const handleSaveEdit = async () => {
+    if (!editingFeed) return;
+
+    const updatedFeed = {
+      name: newFeed.name,
+      url: newFeed.url,
+      enabled: editingFeed.enabled,
+      default_image: newFeed.defaultImage || null
+    };
+
+    console.log('handleSaveEdit:', {
+      feedId: editingFeed.id,
+      updatedFeed
+    });
+
+    try {
+      await handleEditFeed(editingFeed.id, updatedFeed);
+    } catch (error) {
+      console.error('Error in handleSaveEdit:', error);
+    } finally {
       setEditingFeed(null);
       setNewFeed({ name: '', url: '', defaultImage: '' });
     }
@@ -82,94 +101,100 @@ const FeedManager = ({ feeds, onAddFeed, onToggleFeed, onDeleteFeed, onEditFeed 
   };
 
   return (
-    <Box sx={{ padding: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        RSSフィード管理
-      </Typography>
-      
-      <Grid container spacing={2} sx={{ marginBottom: 2 }}>
-        <Grid item xs={12} md={4}>
-          <TextField
-            fullWidth
-            label="ページ名"
-            value={newFeed.name}
-            onChange={handleInputChange('name')}
-            placeholder="例：はてなブックマーク"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <TextField
-            fullWidth
-            label="フィードURL"
-            value={newFeed.url}
-            onChange={handleInputChange('url')}
-            placeholder="RSSフィードのURLを入力"
-          />
-        </Grid>
-        <Grid item xs={12} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>デフォルト画像</InputLabel>
-            <Select
-              value={newFeed.defaultImage}
-              onChange={handleInputChange('defaultImage')}
-              label="デフォルト画像"
-            >
-              <MenuItem value="">
-                <em>なし</em>
-              </MenuItem>
-              {Object.entries(DEFAULT_IMAGES).map(([name, path]) => (
-                <MenuItem key={name} value={path}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <img 
-                      src={path} 
-                      alt={name} 
-                      style={{ width: 24, height: 24 }} 
-                    />
-                    {name}
-                  </Box>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          RSSフィード管理
+        </Typography>
+        
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="ページ名"
+              value={newFeed.name}
+              onChange={handleInputChange('name')}
+              placeholder="例：はてなブックマーク"
+              required
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="フィードURL"
+              value={newFeed.url}
+              onChange={handleInputChange('url')}
+              placeholder="RSSフィードのURLを入力"
+              required
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>デフォルト画像</InputLabel>
+              <Select
+                value={newFeed.defaultImage}
+                onChange={handleInputChange('defaultImage')}
+                label="デフォルト画像"
+              >
+                <MenuItem value="">
+                  <em>なし</em>
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={2}>
-          {editingFeed ? (
-            <Box sx={{ display: 'flex', gap: 1 }}>
+                {Object.entries(DEFAULT_IMAGES).map(([name, path]) => (
+                  <MenuItem key={name} value={path}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <img 
+                        src={path} 
+                        alt={name} 
+                        style={{ width: 24, height: 24 }} 
+                      />
+                      {name}
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            {editingFeed ? (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button 
+                  variant="contained" 
+                  color="primary"
+                  onClick={handleSaveEdit}
+                  fullWidth
+                  sx={{ height: '56px' }}
+                  disabled={!newFeed.name || !newFeed.url}
+                >
+                  保存
+                </Button>
+                <Button 
+                  variant="outlined"
+                  onClick={handleCancelEdit}
+                  fullWidth
+                  sx={{ height: '56px' }}
+                >
+                  キャンセル
+                </Button>
+              </Box>
+            ) : (
               <Button 
                 variant="contained" 
-                color="primary"
-                onClick={handleSaveEdit}
+                onClick={handleAddNewFeed}
                 fullWidth
                 sx={{ height: '56px' }}
+                disabled={!newFeed.name || !newFeed.url}
               >
-                保存
+                追加
               </Button>
-              <Button 
-                variant="outlined"
-                onClick={handleCancelEdit}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
-                キャンセル
-              </Button>
-            </Box>
-          ) : (
-            <Button 
-              variant="contained" 
-              onClick={handleAddFeed}
-              fullWidth
-              sx={{ height: '56px' }}
-            >
-              追加
-            </Button>
-          )}
+            )}
+          </Grid>
         </Grid>
-      </Grid>
+      </Paper>
 
       <List>
-        {feeds.map((feed, index) => (
+        {feeds.map((feed) => (
           <ListItem 
-            key={index} 
+            key={feed.id}
             sx={{ 
               pr: 8,
               opacity: feed.enabled ? 1 : 0.5,
@@ -177,10 +202,10 @@ const FeedManager = ({ feeds, onAddFeed, onToggleFeed, onDeleteFeed, onEditFeed 
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {feed.defaultImage && (
+              {feed.default_image && (
                 <img 
-                  src={feed.defaultImage} 
-                  alt="Default" 
+                  src={feed.default_image} 
+                  alt={feed.name} 
                   style={{ width: 24, height: 24 }} 
                 />
               )}
@@ -196,14 +221,14 @@ const FeedManager = ({ feeds, onAddFeed, onToggleFeed, onDeleteFeed, onEditFeed 
             <ListItemSecondaryAction sx={{ display: 'flex', alignItems: 'center' }}>
               <Switch
                 edge="end"
-                checked={feed.enabled || false}
-                onChange={() => onToggleFeed(index)}
+                checked={feed.enabled}
+                onChange={() => handleToggleFeed(feed.id)}
                 inputProps={{ 'aria-label': 'toggle feed' }}
               />
               <IconButton 
                 edge="end" 
                 aria-label="edit"
-                onClick={() => handleEditClick(feed, index)}
+                onClick={() => handleEditClick(feed)}
                 sx={{ ml: 1 }}
               >
                 <EditIcon />
@@ -211,7 +236,7 @@ const FeedManager = ({ feeds, onAddFeed, onToggleFeed, onDeleteFeed, onEditFeed 
               <IconButton 
                 edge="end" 
                 aria-label="delete"
-                onClick={() => onDeleteFeed(index)}
+                onClick={() => handleDeleteFeed(feed.id)}
                 sx={{ ml: 1 }}
               >
                 <DeleteIcon />

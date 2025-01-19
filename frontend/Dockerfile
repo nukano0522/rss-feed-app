@@ -1,13 +1,11 @@
 # Node.jsの公式イメージをベースとして使用
-FROM node:20-slim
+FROM node:18-alpine
 
 # 作業ディレクトリを設定
 WORKDIR /app
 
-# package.jsonとpackage-lock.jsonをコピー
+# 開発用の依存関係をインストール
 COPY package*.json ./
-
-# 依存関係をインストール
 RUN npm install
 
 # その他のソースファイルをコピー
@@ -21,4 +19,7 @@ ENV VITE_PORT=3000
 ENV VITE_HOST=0.0.0.0
 
 # 開発サーバー起動
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# ホットリロードのためのボリュームマウント用に作業ディレクトリを指定
+VOLUME ["/app/src", "/app/public"] 
