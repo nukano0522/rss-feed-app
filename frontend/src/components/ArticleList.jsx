@@ -33,9 +33,9 @@ const ArticleList = () => {
   
   const placeholderImage = '/placeholder.svg';
 
-  console.log('Articles in ArticleList:', articles);
-  console.log('Read Articles:', readArticles);
-  console.log('Loading state:', isLoading);
+  // console.log('Articles in ArticleList:', articles);
+  // console.log('Read Articles:', readArticles);
+  // console.log('Loading state:', isLoading);
 
   if (isLoading) {
     return (

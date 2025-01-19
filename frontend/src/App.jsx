@@ -14,6 +14,7 @@ function App() {
   const handleMenuSelect = (menu) => {
     setSelectedMenu(menu);
     localStorage.setItem('selectedMenu', menu);
+    console.log('Selected menu:', menu);
   };
 
   return (
