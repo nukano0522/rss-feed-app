@@ -1,18 +1,19 @@
 version: '3.8'
 services:
-  app:
+  frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - ./public/default-images:/app/public/default-images
+    container_name: rss-frontend
     ports:
-      - "5173:5173"
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     environment:
-      - NODE_ENV=development
-    command: npm run dev 
+      - VITE_API_URL=http://localhost:8000
+    # depends_on:
+    #   - backend
 
 volumes:
   default_images: 

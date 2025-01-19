@@ -1,0 +1,79 @@
+{
+  "hash": "38aee6a0",
+  "configHash": "a6532c2d",
+  "lockfileHash": "11b674d3",
+  "browserHash": "7c1b061a",
+  "optimized": {
+    "@mui/icons-material/Article": {
+      "src": "../../node_modules/@mui/icons-material/esm/Article.js",
+      "file": "@mui_icons-material_Article.js",
+      "fileHash": "d083d059",
+      "needsInterop": false
+    },
+    "@mui/icons-material/CheckCircle": {
+      "src": "../../node_modules/@mui/icons-material/esm/CheckCircle.js",
+      "file": "@mui_icons-material_CheckCircle.js",
+      "fileHash": "d3af384a",
+      "needsInterop": false
+    },
+    "@mui/icons-material/Delete": {
+      "src": "../../node_modules/@mui/icons-material/esm/Delete.js",
+      "file": "@mui_icons-material_Delete.js",
+      "fileHash": "22bc7cae",
+      "needsInterop": false
+    },
+    "@mui/icons-material/Edit": {
+      "src": "../../node_modules/@mui/icons-material/esm/Edit.js",
+      "file": "@mui_icons-material_Edit.js",
+      "fileHash": "acb5d79f",
+      "needsInterop": false
+    },
+    "@mui/icons-material/RssFeed": {
+      "src": "../../node_modules/@mui/icons-material/esm/RssFeed.js",
+      "file": "@mui_icons-material_RssFeed.js",
+      "fileHash": "75e409bd",
+      "needsInterop": false
+    },
+    "@mui/material": {
+      "src": "../../node_modules/@mui/material/index.js",
+      "file": "@mui_material.js",
+      "fileHash": "49336553",
+      "needsInterop": false
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "e78373c8",
+      "needsInterop": false
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "5cfe6dce",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "5e548697",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-C6WWHQR7": {
+      "file": "chunk-C6WWHQR7.js"
+    },
+    "chunk-3TY7HNAS": {
+      "file": "chunk-3TY7HNAS.js"
+    },
+    "chunk-UP6LQVYV": {
+      "file": "chunk-UP6LQVYV.js"
+    },
+    "chunk-TWJRYSII": {
+      "file": "chunk-TWJRYSII.js"
+    },
+    "chunk-DC5AMYBS": {
+      "file": "chunk-DC5AMYBS.js"
+    }
+  }
+}

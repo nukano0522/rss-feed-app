@@ -80,6 +80,7 @@ const ArticleList = ({ articles, readArticles, feeds, isLoading, onArticleRead }
   }, [isLoading, feeds]);
 
   const handleArticleClick = (article) => {
+    onArticleRead(article.link);
     window.open(article.link, '_blank', 'noopener,noreferrer');
   };
 
