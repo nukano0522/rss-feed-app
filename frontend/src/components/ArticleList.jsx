@@ -1,139 +1,156 @@
 import React from 'react';
 import {
   Card,
-  CardContent,
   CardMedia,
   Typography,
-  Link,
   Box,
   Chip,
   CircularProgress,
   Container,
-  Grid
+  Grid,
+  ButtonBase,
+  CardContent
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { useRssFeed } from '../hooks/useRssFeed';
 
 const StyledCard = styled(Card)(({ theme }) => ({
+  width: '450px', // カードの横幅
   height: '100%',
   display: 'flex',
-  flexDirection: 'column',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  backgroundColor: 'white',
   '&.read': {
     opacity: 0.7,
   },
+  '& .MuiCardContent-root': {
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1),
+  },
+  '& .MuiTypography-h6': {
+    fontSize: '1rem',
+    lineHeight: 1.4,
+    marginBottom: theme.spacing(1),
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  },
+  '& .MuiTypography-body2': {
+    fontSize: '0.875rem',
+    lineHeight: 1.5,
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+    color: theme.palette.text.secondary,
+  }
 }));
 
 const StyledCardMedia = styled(CardMedia)({
-  height: 200,
+  width: '160px',
+  height: '160px',
+  flexShrink: 0,
   backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  transition: 'transform 0.3s ease',
 });
 
-const ArticleList = () => {
-  const { articles, readArticles, markAsRead, isLoading } = useRssFeed();
-  
-  const placeholderImage = '/placeholder.svg';
+const StyledButtonBase = styled(ButtonBase)({
+  width: '100%',
+  display: 'block',
+  textAlign: 'left',
+  '&:hover': {
+    '& .MuiCard-root': {
+      transform: 'translateY(-4px)',
+      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+    },
+    '& .MuiCardMedia-root': {
+      transform: 'scale(1.05)',
+    },
+  }
+});
 
-  // console.log('Articles in ArticleList:', articles);
-  // console.log('Read Articles:', readArticles);
-  // console.log('Loading state:', isLoading);
-
+const ArticleList = ({ 
+  articles, 
+  readArticles, 
+  isLoading, 
+  onArticleRead 
+}) => {
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (!articles || articles.length === 0) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <Typography variant="h6" color="textSecondary">
-          No articles found
-        </Typography>
-      </Box>
-    );
-  }
-
-  const isArticleRead = (articleLink) => {
-    return readArticles.includes(articleLink);
+  const handleArticleClick = (articleLink) => {
+    onArticleRead(articleLink);
+    window.open(articleLink, '_blank');
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Grid container spacing={6}>
+    <Container 
+      maxWidth={false}
+      sx={{ 
+        py: 3,
+        px: { xs: 2, sm: 3, md: 4 },
+        width: '100%',
+        maxWidth: '100% !important',
+        margin: 0,
+      }}
+    >
+      <Grid 
+        container 
+        spacing={3}
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(300px, 1fr))',
+            md: 'repeat(3, minmax(350px, 1fr))',
+          },
+          gap: '24px 120px', // カード間の縦横のスペース
+        }}
+      >
         {articles.map((article, index) => (
-          <Grid item xs={12} sm={6} md={4} key={`${article.link}-${index}`}>
-            <StyledCard className={isArticleRead(article.link) ? 'read' : ''}>
-              <StyledCardMedia
-                component="img"
-                image={article.image || placeholderImage}
-                alt={article.title}
-                onError={(e) => {
-                  e.target.src = placeholderImage;
-                  e.target.onerror = null;
-                }}
-              />
-              <CardContent>
-                <Typography 
-                  variant="h6" 
-                  component="div"
-                  sx={{ 
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                  }}
-                >
-                  <Link
-                    href={article.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => markAsRead(article.link)}
-                    color="inherit"
-                    underline="hover"
-                  >
-                    {article.title}
-                  </Link>
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {article.feedName}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{
-                    mt: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                  }}
-                >
-                  {article.description}
-                </Typography>
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(article.published).toLocaleDateString()}
+          <Grid 
+            item 
+            key={article.link + index}
+            sx={{ width: '100%', minWidth: 0 }}
+          >
+            <StyledButtonBase onClick={() => handleArticleClick(article.link)}>
+              <StyledCard className={readArticles.includes(article.link) ? 'read' : ''}>
+                <StyledCardMedia
+                  image={article.image || article.feedImage || '/default-image.jpg'}
+                  title={article.title}
+                />
+                <CardContent>
+                  <Typography variant="caption" color="textSecondary">
+                    {article.feedName} · {new Date(article.published).toLocaleDateString()}
                   </Typography>
-                  {article.categories && article.categories.length > 0 && (
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      {article.categories.map((category, i) => (
-                        <Chip
-                          key={i}
-                          label={category}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-              </CardContent>
-            </StyledCard>
+                  <Typography variant="h6">
+                    {article.title}
+                  </Typography>
+                  <Typography variant="body2">
+                    {article.description || "説明はありません"}
+                  </Typography>
+                  <Box sx={{ mt: 'auto', display: 'flex', gap: 1 }}>
+                    {article.categories?.slice(0, 2).map((category, i) => (
+                      <Chip
+                        key={i}
+                        label={category}
+                        size="small"
+                        sx={{ height: 24 }}
+                      />
+                    ))}
+                  </Box>
+                </CardContent>
+              </StyledCard>
+            </StyledButtonBase>
           </Grid>
         ))}
       </Grid>

@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import config from '../config';
 import { feedsApi } from '../services/api.js';
 
 import { MOCK_ARTICLES } from '../mocks/feedData';
@@ -10,13 +8,6 @@ export const useRssFeed = () => {
   const [articles, setArticles] = useState([]);
   const [readArticles, setReadArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const api = axios.create({
-    baseURL: `${config.apiUrl}/api`,
-    headers: {
-      'Content-Type': 'application/json',
-    }
-  });
 
   // フィードの取得
   const fetchFeeds = async () => {

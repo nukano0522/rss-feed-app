@@ -10,8 +10,6 @@ from ..models.user import User
 from ..auth.auth import current_active_user
 from .. import models, schemas
 
-router = APIRouter(prefix="/api/feeds", tags=["feeds"])
-
 logger = logging.getLogger(__name__)
 
 # RSS2JSONのエンドポイント

@@ -39,7 +39,7 @@ api.interceptors.response.use(
 export const feedsApi = {
   getFeeds: () => api.get('/feeds'),
   createFeed: (feed) => {
-    console.log('Creating feed:', feed); // デバッグ用
+    // console.log('Creating feed:', feed); // デバッグ用
     return api.post('/feeds', feed);
   },
   updateFeed: (id, feed) => 
