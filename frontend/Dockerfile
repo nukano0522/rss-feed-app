@@ -1,19 +1,23 @@
 # Node.jsの公式イメージをベースとして使用
-FROM node:18.17-alpine
-
-# 必要なパッケージをインストール
-RUN apk add --no-cache python3 make g++
+FROM node:20-slim
 
 # 作業ディレクトリを設定
 WORKDIR /app
 
+# npmの設定を最適化
+RUN npm config set fetch-retry-maxtimeout 600000 \
+    && npm config set fetch-timeout 600000 \
+    && npm config set registry https://registry.npmjs.org/
+
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# 依存関係をインストール
-RUN npm install --legacy-peer-deps
+# node_modulesをクリーンアップして再インストール
+RUN rm -rf node_modules \
+    && npm cache clean --force \
+    && npm ci
 
-# その他のソースファイルをコピー
+# ソースコードをコピー
 COPY . .
 
 # 開発サーバーのポートを開放
@@ -24,7 +28,7 @@ ENV VITE_PORT=3000
 ENV VITE_HOST=0.0.0.0
 
 # 開発サーバー起動
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # ホットリロードのためのボリュームマウント用に作業ディレクトリを指定
 VOLUME ["/app/src", "/app/public"] 

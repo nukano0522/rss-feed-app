@@ -15,11 +15,10 @@ app = FastAPI()
 # CORSミドルウェアの設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
+    allow_origins=["http://localhost:3000"],  # フロントエンドのオリジン
+    allow_credentials=True,  # Cookie送信を許可
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 # ルーターを追加

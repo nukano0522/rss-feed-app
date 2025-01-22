@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '../config';
+import { feedsApi } from '../services/api.js';
 
 import { MOCK_ARTICLES } from '../mocks/feedData';
 
@@ -11,7 +12,7 @@ export const useRssFeed = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const api = axios.create({
-    baseURL: config.apiUrl,
+    baseURL: `${config.apiUrl}/api`,
     headers: {
       'Content-Type': 'application/json',
     }
@@ -20,7 +21,7 @@ export const useRssFeed = () => {
   // フィードの取得
   const fetchFeeds = async () => {
     try {
-      const response = await api.get('/feeds');
+      const response = await feedsApi.getFeeds();
       setFeeds(response.data);
       return response.data;
     } catch (error) {
@@ -41,10 +42,7 @@ export const useRssFeed = () => {
           console.log(`Fetching feed: ${feed.url}`);
           
           try {
-            const response = await api.get(`/parse-feed`, {
-              params: { url: feed.url },
-              timeout: 10000
-            });
+            const response = await feedsApi.parseFeed(feed.url);
             
             // 429エラーの場合、モックデータを使用
             if (response.data.status === "error" && response.data.code === 429) {
@@ -113,7 +111,7 @@ export const useRssFeed = () => {
   // フィードの追加
   const handleAddFeed = async (newFeed) => {
     try {
-      const response = await api.post('/feeds', {
+      const response = await feedsApi.createFeed({
         url: newFeed.url,
         name: newFeed.name,
         enabled: newFeed.enabled,
@@ -130,81 +128,32 @@ export const useRssFeed = () => {
   // フィードの編集
   const handleEditFeed = async (feedId, updatedFeed) => {
     try {
-      if (!feedId) {
-        throw new Error('Feed ID is required');
-      }
-
-      if (!updatedFeed || !updatedFeed.url || !updatedFeed.name) {
-        throw new Error('Invalid feed data');
-      }
-
-      console.log('Updating feed:', {
-        feedId,
-        updatedData: updatedFeed
-      });
-
-      const feedData = {
-        url: updatedFeed.url,
-        name: updatedFeed.name,
-        enabled: updatedFeed.enabled !== undefined ? updatedFeed.enabled : true,
-        default_image: updatedFeed.default_image
-      };
-
-      // APIリクエスト
-      const response = await api.put(`/feeds/${feedId}`, feedData);
-      
-      // フィード一覧の更新
+      const response = await feedsApi.updateFeed(feedId, updatedFeed);
       setFeeds(prev => prev.map(feed => 
         feed.id === feedId ? response.data : feed
       ));
-
       return response.data;
     } catch (error) {
       console.error('Error updating feed:', error);
-      console.error('Error details:', error.response?.data);
       throw error;
     }
   };
 
   // フィードの有効/無効切り替え
   const handleToggleFeed = async (feedId) => {
-    try {
-      const feed = feeds.find(f => f.id === feedId);
-      if (!feed) {
-        throw new Error('Feed not found');
-      }
-
-      const updatedFeed = { 
-        ...feed,
-        enabled: !feed.enabled 
-      };
-
-      const response = await api.put(`/feeds/${feedId}`, updatedFeed);
-      
-      setFeeds(prev => prev.map(f => 
-        f.id === feedId ? response.data : f
-      ));
-
-      return response.data;
-    } catch (error) {
-      console.error('Error toggling feed:', error);
-      console.error('Error details:', error.response?.data);
-      throw error;
+    const feed = feeds.find(f => f.id === feedId);
+    if (feed) {
+      await handleEditFeed(feedId, { enabled: !feed.enabled });
     }
   };
 
   // フィードの削除
   const handleDeleteFeed = async (feedId) => {
     try {
-      if (!feedId) {
-        throw new Error('Feed ID is required');
-      }
-
-      await api.delete(`/feeds/${feedId}`);
+      await feedsApi.deleteFeed(feedId);
       setFeeds(prev => prev.filter(feed => feed.id !== feedId));
     } catch (error) {
       console.error('Error deleting feed:', error);
-      console.error('Error details:', error.response?.data);
       throw error;
     }
   };
@@ -212,7 +161,7 @@ export const useRssFeed = () => {
   // 記事を既読にする
   const markAsRead = async (articleLink) => {
     try {
-      await api.post('/read-articles', { article_link: articleLink });
+      await feedsApi.markAsRead(articleLink);
       setReadArticles(prev => [...prev, articleLink]);
     } catch (error) {
       console.error('Error marking article as read:', error);

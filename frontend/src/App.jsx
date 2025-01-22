@@ -1,38 +1,50 @@
 import React from 'react';
-import { Box, CssBaseline } from '@mui/material';
-import FeedManager from './components/FeedManager';
-import ArticleList from './components/ArticleList';
-import Navigation from './components/Navigation';
-import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './hooks/useAuth.jsx';
+import { Login } from './components/Login';
+import RssFeedReader from './components/RssFeedReader';
+import { Container, CssBaseline } from '@mui/material';
 
-function App() {
-  const [selectedMenu, setSelectedMenu] = useState(() => {
-    const savedMenu = localStorage.getItem('selectedMenu');
-    return savedMenu || 'feeds';
-  });
+// 保護されたルートのラッパーコンポーネント
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
-  const handleMenuSelect = (menu) => {
-    setSelectedMenu(menu);
-    localStorage.setItem('selectedMenu', menu);
-    console.log('Selected menu:', menu);
-  };
-
+// メインのアプリケーションコンポーネント
+const AppContent = () => {
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Container>
       <CssBaseline />
-      <Navigation 
-        selectedMenu={selectedMenu} 
-        onMenuSelect={handleMenuSelect}
-      />
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        {selectedMenu === 'feeds' ? (
-          <FeedManager />
-        ) : (
-          <ArticleList />
-        )}
-      </Box>
-    </Box>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <RssFeedReader />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Container>
   );
-}
+};
+
+// ルートアプリケーションコンポーネント
+const App = () => {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
+  );
+};
 
 export default App;

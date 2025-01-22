@@ -101,12 +101,11 @@ const FeedManager = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+    <Box>
+      <Typography variant="h4" component="h1" gutterBottom>
+        RSSフィード管理
+      </Typography>
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          RSSフィード管理
-        </Typography>
-        
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <TextField

@@ -12,5 +12,14 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  esbuild: {
+    loader: 'jsx',
+    include: [
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "node_modules/**/*.js",
+      "node_modules/**/*.jsx"
+    ]
   }
 })

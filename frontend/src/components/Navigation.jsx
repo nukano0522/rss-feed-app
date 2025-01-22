@@ -8,14 +8,27 @@ import {
   ListItemText,
   Typography,
   Divider,
-  Box
+  Box,
+  Button
 } from '@mui/material';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
 import ArticleIcon from '@mui/icons-material/Article';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useAuth } from '../hooks/useAuth.jsx';
 
 const drawerWidth = 240;
 
 export default function Navigation({ selectedMenu, onMenuSelect }) {
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <Drawer
       variant="permanent"
@@ -28,10 +41,16 @@ export default function Navigation({ selectedMenu, onMenuSelect }) {
         },
       }}
     >
-      <Box sx={{ overflow: 'auto', mt: 2 }}>
-        <Typography variant="h6" sx={{ px: 2, pb: 2 }}>
-          RSSリーダー
-        </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        height: '100%'
+      }}>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ pb: 2 }}>
+            RSSリーダー
+          </Typography>
+        </Box>
         <Divider />
         <List>
           <ListItem disablePadding>
@@ -54,6 +73,18 @@ export default function Navigation({ selectedMenu, onMenuSelect }) {
                 <ArticleIcon />
               </ListItemIcon>
               <ListItemText primary="記事一覧" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+        <Box sx={{ flexGrow: 1 }} /> {/* スペーサー */}
+        <Divider />
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText primary="ログアウト" />
             </ListItemButton>
           </ListItem>
         </List>
