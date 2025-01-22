@@ -1,12 +1,17 @@
 # Node.jsの公式イメージをベースとして使用
-FROM node:18-alpine
+FROM node:18.17-alpine
+
+# 必要なパッケージをインストール
+RUN apk add --no-cache python3 make g++
 
 # 作業ディレクトリを設定
 WORKDIR /app
 
-# 開発用の依存関係をインストール
+# package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
-RUN npm install
+
+# 依存関係をインストール
+RUN npm install --legacy-peer-deps
 
 # その他のソースファイルをコピー
 COPY . .
@@ -19,7 +24,7 @@ ENV VITE_PORT=3000
 ENV VITE_HOST=0.0.0.0
 
 # 開発サーバー起動
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["npm", "run", "dev"]
 
 # ホットリロードのためのボリュームマウント用に作業ディレクトリを指定
 VOLUME ["/app/src", "/app/public"] 
