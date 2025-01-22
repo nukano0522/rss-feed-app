@@ -38,7 +38,7 @@ graph TD
     FeedManager -->|handleDeleteFeed| useRssFeed
 
     %% Data flow for ArticleList
-    ArticleList -->|markAsRead| useRssFeed
+    ArticleList -->|readArticle| useRssFeed
     ArticleList -->|Read articles state| useRssFeed
 
     classDef contextLayer fill:#e1f5fe,stroke:#01579b

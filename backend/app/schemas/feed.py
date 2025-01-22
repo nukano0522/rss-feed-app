@@ -40,6 +40,7 @@ class ReadArticleCreate(ReadArticleBase):
 class ReadArticle(ReadArticleBase):
     id: int
     read_at: datetime
+    user_id: int
 
     class Config:
         from_attributes = True

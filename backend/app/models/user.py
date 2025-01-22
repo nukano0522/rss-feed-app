@@ -6,6 +6,7 @@ from ..database import Base
 
 
 class User(SQLAlchemyBaseUserTable[int], Base):
+    __tablename__ = "user"
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(
         String(length=320), unique=True, index=True, nullable=False

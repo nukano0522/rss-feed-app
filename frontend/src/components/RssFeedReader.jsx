@@ -25,7 +25,7 @@ const RssFeedReader = () => {
     handleEditFeed,
     handleToggleFeed,
     handleDeleteFeed,
-    markAsRead,
+    readArticle,
   } = useRssFeed();
 
   return (
@@ -50,7 +50,7 @@ const RssFeedReader = () => {
             readArticles={readArticles}
             feeds={feeds}
             isLoading={isLoading}
-            onArticleRead={markAsRead}
+            onArticleRead={readArticle}
           />
         )}
       </Box>

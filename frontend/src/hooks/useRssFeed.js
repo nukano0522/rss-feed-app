@@ -150,9 +150,9 @@ export const useRssFeed = () => {
   };
 
   // 記事を既読にする
-  const markAsRead = async (articleLink) => {
+  const readArticle = async (articleLink) => {
     try {
-      await feedsApi.markAsRead(articleLink);
+      await feedsApi.readArticle(articleLink);
       setReadArticles(prev => [...prev, articleLink]);
     } catch (error) {
       console.error('Error marking article as read:', error);
@@ -169,6 +169,6 @@ export const useRssFeed = () => {
     handleEditFeed,
     handleToggleFeed,
     handleDeleteFeed,
-    markAsRead,
+    readArticle,
   };
 }; 

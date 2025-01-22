@@ -46,8 +46,8 @@ export const feedsApi = {
     api.put(`/feeds/${id}`, feed),
   deleteFeed: (id) => 
     api.delete(`/feeds/${id}`),
-  markAsRead: (articleLink) => 
-    api.post('/read-articles', { article_link: articleLink }),
+  readArticle: (articleLink) => 
+    api.post('/feeds/read-articles', { article_link: articleLink }),
   parseFeed: (url) => 
     api.get(`/feeds/parse-feed?url=${url}`),
 }; 

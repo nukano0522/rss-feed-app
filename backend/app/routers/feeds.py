@@ -10,6 +10,7 @@ from ..models.user import User
 from ..auth.auth import current_active_user
 from .. import models, schemas
 
+
 logger = logging.getLogger(__name__)
 
 # RSS2JSONのエンドポイント
@@ -87,7 +88,11 @@ async def mark_article_as_read(
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    db_article = models.ReadArticle(**article.dict())
+    # article.dictの内容にuser_idを追加
+    article_data = article.dict()
+    article_data["user_id"] = user.id
+
+    db_article = models.ReadArticle(**article_data)
     session.add(db_article)
     await session.commit()
     await session.refresh(db_article)
@@ -142,3 +147,17 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
         logger.error(f"Error parsing feed: {str(e)}")
         logger.exception(e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/read-articles")
+async def get_read_articles(
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    query = select(models.ReadArticle.article_link).where(
+        models.ReadArticle.user_id == user.id
+    )
+    result = await session.execute(query)
+    read_articles = [row[0] for row in result.fetchall()]
+
+    return {"read_articles": read_articles}
