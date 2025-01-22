@@ -42,30 +42,39 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/rss_reader
+      - DATABASE_URL=mysql://user:password@db:3306/rss_reader
     volumes:
       - ./backend:/app
       - /app/__pycache__
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network
 
   db:
-    image: postgres:15
+    image: mysql:8.0
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=rss_reader
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=rss_reader
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     ports:
-      - "5432:5432"
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "--password=password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
-  postgres_data:
+  mysql_data:
   frontend_node_modules:
 
 networks:
