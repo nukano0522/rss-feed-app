@@ -6,3 +6,7 @@ pymysql==1.1.0
 pydantic==2.4.2
 python-dotenv==1.0.0
 requests==2.31.0
+fastapi-users[sqlalchemy]==12.1.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+aiomysql==0.2.0
