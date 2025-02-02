@@ -5,21 +5,20 @@ from typing import List
 from datetime import datetime
 import requests
 import logging
-from ..database import get_async_session
-from ..models.user import User
-from ..auth.auth import current_active_user
-from .. import models, schemas
-
+from app.database import get_async_session
+from app.models.user import User
+from app.auth.auth import current_active_user
+from app import models, schemas
 
 logger = logging.getLogger(__name__)
 
 # RSS2JSONのエンドポイント
 RSS2JSON_ENDPOINT = "https://api.rss2json.com/v1/api.json"
 
-router = APIRouter(prefix="/api/feeds", tags=["feeds"])
+router = APIRouter()
 
 
-@router.get("", response_model=List[schemas.Feed])
+@router.get("/", response_model=List[schemas.Feed])
 async def get_feeds(
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
@@ -29,7 +28,7 @@ async def get_feeds(
     return result.scalars().all()
 
 
-@router.post("", response_model=schemas.Feed)
+@router.post("/", response_model=schemas.Feed)
 async def create_feed(
     feed: schemas.FeedCreate,
     user: User = Depends(current_active_user),
@@ -80,6 +79,20 @@ async def delete_feed(
     await session.delete(db_feed)
     await session.commit()
     return {"ok": True}
+
+
+@router.get("/read-articles")
+async def get_read_articles(
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    query = select(models.ReadArticle.article_link).where(
+        models.ReadArticle.user_id == user.id
+    )
+    result = await session.execute(query)
+    read_articles = [row[0] for row in result.fetchall()]
+
+    return {"read_articles": read_articles}
 
 
 @router.post("/read-articles", response_model=schemas.ReadArticle)
@@ -147,17 +160,3 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
         logger.error(f"Error parsing feed: {str(e)}")
         logger.exception(e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/read-articles")
-async def get_read_articles(
-    user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
-):
-    query = select(models.ReadArticle.article_link).where(
-        models.ReadArticle.user_id == user.id
-    )
-    result = await session.execute(query)
-    read_articles = [row[0] for row in result.fetchall()]
-
-    return {"read_articles": read_articles}

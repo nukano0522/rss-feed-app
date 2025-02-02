@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi_users.db import SQLAlchemyBaseUserTable
 from sqlalchemy import String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
-from ..database import Base
+from app.database import Base
 
 
 class User(SQLAlchemyBaseUserTable[int], Base):

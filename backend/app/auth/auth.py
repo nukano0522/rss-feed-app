@@ -20,7 +20,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
         print(f"User {user.id} has registered.")
 
 
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
+bearer_transport = BearerTransport(tokenUrl="api/v1/auth/jwt/login")
 
 
 def get_jwt_strategy() -> JWTStrategy:

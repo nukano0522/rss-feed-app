@@ -1,8 +1,8 @@
 from fastapi import FastAPI
-from .database import engine, Base
-from . import models
+from app.database import engine, Base
+from app import models
 import logging
-from .routers import auth_router, feeds_router
+from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
 
 # ロガーの設定
@@ -21,9 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ルーターを追加
-app.include_router(auth_router)
-app.include_router(feeds_router)
+# APIルーターを追加
+app.include_router(api_router, prefix="/api/v1")
 
 
 # データベースの初期化
