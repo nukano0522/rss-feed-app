@@ -44,3 +44,21 @@ class ReadArticle(ReadArticleBase):
 
     class Config:
         from_attributes = True
+
+
+class FavoriteArticleBase(BaseModel):
+    article_link: str
+    article_title: str
+
+
+class FavoriteArticleCreate(FavoriteArticleBase):
+    pass
+
+
+class FavoriteArticle(FavoriteArticleBase):
+    id: int
+    favorited_at: datetime
+    user_id: int
+
+    class Config:
+        from_attributes = True

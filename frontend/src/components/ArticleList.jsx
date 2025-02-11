@@ -10,8 +10,11 @@ import {
   Grid,
   ButtonBase,
   CardContent,
+  IconButton,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   width: '450px', // カードの横幅
@@ -150,7 +153,9 @@ const ArticleList = ({
   readArticles, 
   isLoading, 
   onArticleRead,
-  feeds 
+  feeds,
+  favoriteArticles,
+  onToggleFavorite 
 }) => {
   const [selectedFeeds, setSelectedFeeds] = useState([]);
   const [readFilter, setReadFilter] = useState('all'); // 'all' | 'read' | 'unread'
@@ -226,10 +231,33 @@ const ArticleList = ({
           >
             <StyledButtonBase onClick={() => handleArticleClick(article.link)}>
               <StyledCard className={readArticles.includes(article.link) ? 'read' : ''}>
-                <StyledCardMedia
-                  image={article.image || article.feedImage || '/default-image.jpg'}
-                  title={article.title}
-                />
+                <Box sx={{ position: 'relative' }}>
+                  <StyledCardMedia
+                    image={article.image || article.feedImage || '/default-image.jpg'}
+                    title={article.title}
+                  />
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation(); // カード全体のクリックイベントを防ぐ
+                      onToggleFavorite(article);
+                    }}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      },
+                    }}
+                  >
+                    {favoriteArticles.includes(article.link) ? (
+                      <StarIcon sx={{ color: '#FFB800' }} />
+                    ) : (
+                      <StarBorderIcon />
+                    )}
+                  </IconButton>
+                </Box>
                 <CardContent>
                   <Typography variant="caption" color="textSecondary">
                     {article.feedName} · {new Date(article.published).toLocaleDateString()}

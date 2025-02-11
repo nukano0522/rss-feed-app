@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
 
@@ -22,3 +31,17 @@ class ReadArticle(Base):
     article_link = Column(String(2083), nullable=False)
     read_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+
+
+class FavoriteArticle(Base):
+    __tablename__ = "favorite_articles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    article_link = Column(String(767), nullable=False)
+    article_title = Column(String(512), nullable=False)
+    favorited_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("article_link", "user_id", name="uq_favorite_article_user"),
+    )

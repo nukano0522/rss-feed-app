@@ -50,4 +50,18 @@ export const feedsApi = {
     api.post('/feeds/read-articles', { article_link: articleLink }),
   parseFeed: (url) => 
     api.get(`/feeds/parse-feed?url=${url}`),
+  getFavoriteArticles: () => 
+    api.get('/feeds/favorite-articles'),
+  checkFavoriteArticles: () => 
+    api.get('/feeds/favorite-articles/check'),
+  addFavoriteArticle: (article) => 
+    api.post('/feeds/favorite-articles', {
+      article_link: article.link,
+      article_title: article.title
+    }),
+  removeFavoriteArticle: (articleLink) => {
+    // Base64エンコーディングを使用してURLを安全に送信
+    const encodedLink = btoa(articleLink);
+    return api.delete(`/feeds/favorite-articles/${encodedLink}`);
+  },
 }; 

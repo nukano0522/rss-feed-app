@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, CssBaseline, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, Chip } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Box, CssBaseline } from '@mui/material';
 import FeedManager from './FeedManager';
 import ArticleList from './ArticleList';
 import Navigation from './Navigation';
@@ -8,13 +8,8 @@ import { useRssFeed } from '../hooks/useRssFeed';
 const RssFeedReader = () => {
   const [selectedMenu, setSelectedMenu] = useState(() => {
     const savedMenu = localStorage.getItem('selectedMenu');
-    return savedMenu || 'feeds';
+    return savedMenu || 'articles';
   });
-
-  const handleMenuSelect = (menu) => {
-    setSelectedMenu(menu);
-    localStorage.setItem('selectedMenu', menu);
-  };
 
   const {
     feeds,
@@ -26,7 +21,19 @@ const RssFeedReader = () => {
     handleToggleFeed,
     handleDeleteFeed,
     readArticle,
+    favoriteArticles,
+    toggleFavorite,
   } = useRssFeed();
+
+  // お気に入り記事のフィルタリング
+  const favoriteArticlesList = useMemo(() => {
+    return articles.filter(article => favoriteArticles.includes(article.link));
+  }, [articles, favoriteArticles]);
+
+  const handleMenuSelect = (menu) => {
+    setSelectedMenu(menu);
+    localStorage.setItem('selectedMenu', menu);
+  };
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -44,6 +51,16 @@ const RssFeedReader = () => {
             onDeleteFeed={handleDeleteFeed}
             onEditFeed={handleEditFeed}
           />
+        ) : selectedMenu === 'favorites' ? (
+          <ArticleList 
+            articles={favoriteArticlesList}
+            readArticles={readArticles}
+            feeds={feeds}
+            isLoading={isLoading}
+            onArticleRead={readArticle}
+            favoriteArticles={favoriteArticles}
+            onToggleFavorite={toggleFavorite}
+          />
         ) : (
           <ArticleList 
             articles={articles}
@@ -51,6 +68,8 @@ const RssFeedReader = () => {
             feeds={feeds}
             isLoading={isLoading}
             onArticleRead={readArticle}
+            favoriteArticles={favoriteArticles}
+            onToggleFavorite={toggleFavorite}
           />
         )}
       </Box>

@@ -14,6 +14,7 @@ import {
 import RssFeedIcon from '@mui/icons-material/RssFeed';
 import ArticleIcon from '@mui/icons-material/Article';
 import LogoutIcon from '@mui/icons-material/Logout';
+import StarIcon from '@mui/icons-material/Star';
 import { useAuth } from '../hooks/useAuth.jsx';
 
 const drawerWidth = 240;
@@ -73,6 +74,17 @@ export default function Navigation({ selectedMenu, onMenuSelect }) {
                 <ArticleIcon />
               </ListItemIcon>
               <ListItemText primary="記事一覧" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => onMenuSelect('favorites')}
+              selected={selectedMenu === 'favorites'}
+            >
+              <ListItemIcon>
+                <StarIcon />
+              </ListItemIcon>
+              <ListItemText primary="お気に入り" />
             </ListItemButton>
           </ListItem>
         </List>

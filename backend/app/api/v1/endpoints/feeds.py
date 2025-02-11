@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from typing import List
 from datetime import datetime
 import requests
@@ -9,6 +9,8 @@ from app.database import get_async_session
 from app.models.user import User
 from app.auth.auth import current_active_user
 from app import models, schemas
+from base64 import b64decode
+from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
 
@@ -160,3 +162,94 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
         logger.error(f"Error parsing feed: {str(e)}")
         logger.exception(e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/favorite-articles", response_model=schemas.FavoriteArticle)
+async def add_favorite_article(
+    article: schemas.FavoriteArticleCreate,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """記事をお気に入りに追加"""
+    try:
+        new_favorite = models.FavoriteArticle(
+            article_link=article.article_link,
+            article_title=article.article_title,
+            user_id=user.id,
+        )
+        session.add(new_favorite)
+        await session.commit()
+        await session.refresh(new_favorite)
+        return new_favorite
+    except Exception as e:
+        await session.rollback()
+        if "uq_favorite_article_user" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="この記事は既にお気に入りに登録されています",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="お気に入り登録中にエラーが発生しました",
+        )
+
+
+@router.delete(
+    "/favorite-articles/{article_link}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def remove_favorite_article(
+    article_link: str,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """お気に入りから記事を削除"""
+    try:
+        # Base64デコードしてURLを復元
+        decoded_link = b64decode(article_link).decode("utf-8")
+
+        result = await session.execute(
+            delete(models.FavoriteArticle).where(
+                models.FavoriteArticle.article_link == decoded_link,
+                models.FavoriteArticle.user_id == user.id,
+            )
+        )
+        await session.commit()
+
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="お気に入りの記事が見つかりません",
+            )
+    except Exception as e:
+        logger.error(f"Error removing favorite article: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="無効なURLフォーマットです"
+        )
+
+
+@router.get("/favorite-articles", response_model=List[schemas.FavoriteArticle])
+async def get_favorite_articles(
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """ユーザーのお気に入り記事一覧を取得"""
+    result = await session.execute(
+        select(models.FavoriteArticle)
+        .where(models.FavoriteArticle.user_id == user.id)
+        .order_by(models.FavoriteArticle.favorited_at.desc())
+    )
+    return result.scalars().all()
+
+
+@router.get("/favorite-articles/check", response_model=List[str])
+async def check_favorite_articles(
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """ユーザーのお気に入り記事のリンク一覧を取得（チェック用）"""
+    result = await session.execute(
+        select(models.FavoriteArticle.article_link).where(
+            models.FavoriteArticle.user_id == user.id
+        )
+    )
+    return [row[0] for row in result.all()]
