@@ -22,13 +22,9 @@ const RssFeedReader = () => {
     handleDeleteFeed,
     readArticle,
     favoriteArticles,
+    favoriteArticlesList,
     toggleFavorite,
   } = useRssFeed();
-
-  // お気に入り記事のフィルタリング
-  const favoriteArticlesList = useMemo(() => {
-    return articles.filter(article => favoriteArticles.includes(article.link));
-  }, [articles, favoriteArticles]);
 
   const handleMenuSelect = (menu) => {
     setSelectedMenu(menu);

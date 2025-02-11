@@ -152,7 +152,11 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
                 "title": item.get("title", ""),
                 "link": item.get("link", ""),
                 "description": item.get("description", ""),
-                "published": item.get("pubDate", datetime.now().isoformat()),
+                "published": item.get("pubDate")
+                or item.get("dc:date")
+                or item.get("date")
+                or item.get("published")
+                or datetime.now().isoformat(),
                 "image": item.get("thumbnail", ""),
                 "categories": item.get("categories", []),
             }

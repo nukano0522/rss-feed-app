@@ -9,6 +9,7 @@ export const useRssFeed = () => {
   const [readArticles, setReadArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [favoriteArticles, setFavoriteArticles] = useState([]);
+  const [favoriteArticlesList, setFavoriteArticlesList] = useState([]);
 
   // フィードの取得
   const fetchFeeds = async () => {
@@ -161,12 +162,26 @@ export const useRssFeed = () => {
     }
   };
 
-  // お気に入り記事のリンク一覧を取得
+  // お気に入り記事の取得
   useEffect(() => {
     const fetchFavoriteArticles = async () => {
       try {
-        const response = await feedsApi.checkFavoriteArticles();
-        setFavoriteArticles(response.data);
+        // 完全な記事データを取得
+        const response = await feedsApi.getFavoriteArticles();
+        const favoriteArticlesData = response.data;
+        
+        // お気に入り記事のリンク一覧も更新
+        const favoriteLinks = favoriteArticlesData.map(article => article.article_link);
+        setFavoriteArticles(favoriteLinks);
+        
+        // お気に入り記事の完全なデータを保持
+        setFavoriteArticlesList(favoriteArticlesData.map(article => ({
+          title: article.article_title,
+          link: article.article_link,
+          published: article.favorited_at,
+          description: '', // APIから取得できる場合は追加
+          feedName: 'お気に入り', // または適切な値
+        })));
       } catch (error) {
         console.error('Error fetching favorite articles:', error);
       }
@@ -203,5 +218,6 @@ export const useRssFeed = () => {
     readArticle,
     favoriteArticles,
     toggleFavorite,
+    favoriteArticlesList,
   };
 }; 
