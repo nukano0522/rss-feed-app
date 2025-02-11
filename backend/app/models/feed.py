@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     UniqueConstraint,
+    Text,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -45,3 +46,12 @@ class FavoriteArticle(Base):
     __table_args__ = (
         UniqueConstraint("article_link", "user_id", name="uq_favorite_article_user"),
     )
+
+
+class ArticleSummary(Base):
+    __tablename__ = "article_summaries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    article_link = Column(String(767), nullable=False, unique=True)
+    summary = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

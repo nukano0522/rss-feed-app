@@ -10,7 +10,9 @@ from app.models.user import User
 from app.auth.auth import current_active_user
 from app import models, schemas
 from base64 import b64decode
-from urllib.parse import unquote
+import aiohttp
+from app.utils.content_extractor import ContentExtractor
+from app.utils.summarizer import ArticleSummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,10 @@ logger = logging.getLogger(__name__)
 RSS2JSON_ENDPOINT = "https://api.rss2json.com/v1/api.json"
 
 router = APIRouter()
+
+# シングルトンとしてインスタンスを作成
+content_extractor = ContentExtractor()
+summarizer = ArticleSummarizer()
 
 
 @router.get("/", response_model=List[schemas.Feed])
@@ -253,3 +259,45 @@ async def check_favorite_articles(
         )
     )
     return [row[0] for row in result.all()]
+
+
+@router.post("/articles/summarize", response_model=schemas.ArticleSummary)
+async def summarize_article(
+    article_link: str,
+    lang: str = Query("ja", description="要約の言語（ja/en）"),
+    session: AsyncSession = Depends(get_async_session),
+):
+    # 既存の要約をチェック
+    existing_summary = await session.execute(
+        select(models.ArticleSummary).where(
+            models.ArticleSummary.article_link == article_link
+        )
+    )
+    summary = existing_summary.scalar_one_or_none()
+    if summary:
+        return summary
+
+    try:
+        # 記事本文の取得
+        async with aiohttp.ClientSession() as client:
+            async with client.get(article_link) as response:
+                html = await response.text()
+
+        # HTMLから本文を抽出
+        article_text = content_extractor.extract_main_content(html, article_link)
+
+        # GPTによる要約生成
+        summary_text = await summarizer.summarize(article_text, lang)
+
+        # 要約をDBに保存
+        new_summary = models.ArticleSummary(
+            article_link=article_link, summary=summary_text
+        )
+        session.add(new_summary)
+        await session.commit()
+
+        return new_summary
+
+    except Exception as e:
+        logger.error(f"Error summarizing article: {str(e)}")
+        raise HTTPException(status_code=500, detail="記事の要約に失敗しました")

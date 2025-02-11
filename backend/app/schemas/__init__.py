@@ -7,6 +7,8 @@ from .feed import (
     ReadArticleCreate,
     FavoriteArticle,
     FavoriteArticleCreate,
+    ArticleSummary,
+    ArticleSummaryCreate,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "ReadArticleCreate",
     "FavoriteArticle",
     "FavoriteArticleCreate",
+    "ArticleSummary",
+    "ArticleSummaryCreate",
 ]

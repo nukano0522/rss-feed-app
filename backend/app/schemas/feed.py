@@ -62,3 +62,20 @@ class FavoriteArticle(FavoriteArticleBase):
 
     class Config:
         from_attributes = True
+
+
+class ArticleSummaryBase(BaseModel):
+    article_link: str
+    summary: str
+
+
+class ArticleSummaryCreate(ArticleSummaryBase):
+    pass
+
+
+class ArticleSummary(ArticleSummaryBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -4,6 +4,7 @@ from app import models
 import logging
 from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 # ロガーの設定
 logging.basicConfig(level=logging.INFO)
