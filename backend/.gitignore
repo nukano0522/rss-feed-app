@@ -1,2 +1,6 @@
 /__pycache__/
+<<<<<<< HEAD
 **/__pycache__/
+=======
+/**/__pycache__/
+>>>>>>> feature/auth03
