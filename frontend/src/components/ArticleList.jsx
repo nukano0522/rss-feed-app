@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardMedia,
@@ -9,7 +9,7 @@ import {
   Container,
   Grid,
   ButtonBase,
-  CardContent
+  CardContent,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -73,12 +73,107 @@ const StyledButtonBase = styled(ButtonBase)({
   }
 });
 
+const ArticleFilter = ({ feeds, selectedFeeds, onFilterChange, readFilter, onReadFilterChange }) => {
+  return (
+    <Box sx={{ mb: 3 }}>
+      {/* フィードフィルター */}
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        フィードでフィルター
+      </Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+        {feeds.map((feed) => (
+          <Chip
+            key={feed.id}
+            label={feed.name}
+            onClick={() => {
+              if (selectedFeeds.includes(feed.id)) {
+                onFilterChange(selectedFeeds.filter(id => id !== feed.id));
+              } else {
+                onFilterChange([...selectedFeeds, feed.id]);
+              }
+            }}
+            color={selectedFeeds.includes(feed.id) ? "primary" : "default"}
+            variant={selectedFeeds.includes(feed.id) ? "filled" : "outlined"}
+            sx={{ 
+              cursor: 'pointer',
+              '&:hover': {
+                backgroundColor: selectedFeeds.includes(feed.id) 
+                  ? 'primary.dark' 
+                  : 'action.hover'
+              }
+            }}
+          />
+        ))}
+        {selectedFeeds.length > 0 && (
+          <Chip
+            label="すべて表示"
+            onClick={() => onFilterChange([])}
+            variant="outlined"
+            sx={{ cursor: 'pointer' }}
+          />
+        )}
+      </Box>
+
+      {/* 既読/未読フィルター */}
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        既読状態
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Chip
+          label="すべて"
+          onClick={() => onReadFilterChange('all')}
+          color={readFilter === 'all' ? "primary" : "default"}
+          variant={readFilter === 'all' ? "filled" : "outlined"}
+          sx={{ cursor: 'pointer' }}
+        />
+        <Chip
+          label="未読"
+          onClick={() => onReadFilterChange('unread')}
+          color={readFilter === 'unread' ? "primary" : "default"}
+          variant={readFilter === 'unread' ? "filled" : "outlined"}
+          sx={{ cursor: 'pointer' }}
+        />
+        <Chip
+          label="既読"
+          onClick={() => onReadFilterChange('read')}
+          color={readFilter === 'read' ? "primary" : "default"}
+          variant={readFilter === 'read' ? "filled" : "outlined"}
+          sx={{ cursor: 'pointer' }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
 const ArticleList = ({ 
   articles, 
   readArticles, 
   isLoading, 
-  onArticleRead 
+  onArticleRead,
+  feeds 
 }) => {
+  const [selectedFeeds, setSelectedFeeds] = useState([]);
+  const [readFilter, setReadFilter] = useState('all'); // 'all' | 'read' | 'unread'
+
+  const filteredArticles = useMemo(() => {
+    return articles.filter(article => {
+      // フィードフィルター
+      if (selectedFeeds.length > 0) {
+        const feed = feeds.find(f => f.url === article.feedUrl);
+        if (!feed || !selectedFeeds.includes(feed.id)) {
+          return false;
+        }
+      }
+
+      // 既読/未読フィルター
+      const isRead = readArticles.includes(article.link);
+      if (readFilter === 'read' && !isRead) return false;
+      if (readFilter === 'unread' && isRead) return false;
+
+      return true;
+    });
+  }, [articles, selectedFeeds, feeds, readFilter, readArticles]);
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -103,6 +198,13 @@ const ArticleList = ({
         margin: 0,
       }}
     >
+      <ArticleFilter 
+        feeds={feeds}
+        selectedFeeds={selectedFeeds}
+        onFilterChange={setSelectedFeeds}
+        readFilter={readFilter}
+        onReadFilterChange={setReadFilter}
+      />
       <Grid 
         container 
         spacing={3}
@@ -113,10 +215,10 @@ const ArticleList = ({
             sm: 'repeat(2, minmax(300px, 1fr))',
             md: 'repeat(3, minmax(350px, 1fr))',
           },
-          gap: '24px 120px', // カード間の縦横のスペース
+          gap: '24px 120px',
         }}
       >
-        {articles.map((article, index) => (
+        {filteredArticles.map((article, index) => (
           <Grid 
             item 
             key={article.link + index}
