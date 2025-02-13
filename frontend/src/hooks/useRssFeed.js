@@ -178,8 +178,10 @@ export const useRssFeed = () => {
         setFavoriteArticlesList(favoriteArticlesData.map(article => ({
           title: article.article_title,
           link: article.article_link,
+          description: article.article_description || '',
+          image: article.article_image || '',
+          categories: article.article_categories || [],
           published: article.favorited_at,
-          description: '', // APIから取得できる場合は追加
           feedName: 'お気に入り', // または適切な値
         })));
       } catch (error) {
@@ -193,16 +195,51 @@ export const useRssFeed = () => {
   // お気に入り登録・解除の処理
   const toggleFavorite = async (article) => {
     try {
+
       if (favoriteArticles.includes(article.link)) {
         await feedsApi.removeFavoriteArticle(article.link);
         setFavoriteArticles(prev => prev.filter(link => link !== article.link));
+        setFavoriteArticlesList(prev => prev.filter(a => a.link !== article.link));
       } else {
-        await feedsApi.addFavoriteArticle(article);
+        await feedsApi.addFavoriteArticle({
+          link: article.link,
+          title: article.title,
+          description: article.description || '',
+          image: article.image || '',
+          categories: article.categories || []
+        });
         setFavoriteArticles(prev => [...prev, article.link]);
+        setFavoriteArticlesList(prev => [...prev, {
+          title: article.title,
+          link: article.link,
+          description: article.description || '',
+          image: article.image || '',
+          categories: article.categories || [],
+          published: new Date().toISOString(),
+          feedName: 'お気に入り'
+        }]);
       }
+
+      // お気に入り記事の一覧を再取得
+      const response = await feedsApi.getFavoriteArticles();
+      const favoriteArticlesData = response.data;
+      
+      // お気に入り記事のリンク一覧を更新
+      setFavoriteArticles(favoriteArticlesData.map(article => article.article_link));
+      
+      // お気に入り記事の完全なデータを更新
+      setFavoriteArticlesList(favoriteArticlesData.map(article => ({
+        title: article.article_title,
+        link: article.article_link,
+        description: article.article_description || '',
+        image: article.article_image || '',
+        categories: article.article_categories || [],
+        published: article.favorited_at,
+        feedName: 'お気に入り'
+      })));
+
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-      throw error;
+      console.error('Failed to toggle favorite:', error);
     }
   };
 

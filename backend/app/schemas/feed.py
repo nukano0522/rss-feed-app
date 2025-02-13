@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class FeedBase(BaseModel):
@@ -49,6 +49,9 @@ class ReadArticle(ReadArticleBase):
 class FavoriteArticleBase(BaseModel):
     article_link: str
     article_title: str
+    article_description: str | None = None
+    article_image: str | None = None
+    article_categories: list[str] | None = None
 
 
 class FavoriteArticleCreate(FavoriteArticleBase):

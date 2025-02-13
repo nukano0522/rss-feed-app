@@ -11,6 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+from sqlalchemy.dialects.postgresql import JSON
 
 
 class Feed(Base):
@@ -40,6 +41,9 @@ class FavoriteArticle(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     article_link = Column(String(767), nullable=False)
     article_title = Column(String(512), nullable=False)
+    article_description = Column(Text, nullable=True)
+    article_image = Column(String(2083), nullable=True)
+    article_categories = Column(JSON, nullable=True)
     favorited_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
 

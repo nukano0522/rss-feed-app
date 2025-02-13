@@ -185,6 +185,10 @@ async def add_favorite_article(
         new_favorite = models.FavoriteArticle(
             article_link=article.article_link,
             article_title=article.article_title,
+            article_description=article.article_description,
+            article_image=article.article_image,
+            article_categories=article.article_categories
+            or [],  # 空リストをデフォルト値として設定
             user_id=user.id,
         )
         session.add(new_favorite)

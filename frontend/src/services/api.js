@@ -57,7 +57,10 @@ export const feedsApi = {
   addFavoriteArticle: (article) => 
     api.post('/feeds/favorite-articles', {
       article_link: article.link,
-      article_title: article.title
+      article_title: article.title,
+      article_description: article.description || '',
+      article_image: article.image || '',
+      article_categories: article.categories || []
     }),
   removeFavoriteArticle: (articleLink) => {
     // Base64エンコーディングを使用してURLを安全に送信
