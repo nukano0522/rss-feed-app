@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { feedsApi } from '../services/api.js';
+import { feedsApi } from '../services/api';
 
 import { MOCK_ARTICLES } from '../mocks/feedData';
 

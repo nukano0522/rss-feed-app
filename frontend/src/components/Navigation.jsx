@@ -15,7 +15,8 @@ import RssFeedIcon from '@mui/icons-material/RssFeed';
 import ArticleIcon from '@mui/icons-material/Article';
 import LogoutIcon from '@mui/icons-material/Logout';
 import StarIcon from '@mui/icons-material/Star';
-import { useAuth } from '../hooks/useAuth.jsx';
+import { useAuth } from '../hooks/useAuth';
+
 
 const drawerWidth = 240;
 

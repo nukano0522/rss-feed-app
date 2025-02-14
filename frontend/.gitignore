@@ -26,4 +26,6 @@ dist-ssr
 .env*
 !.env.example
 
-/src/components/bak
+/**/bak
+
+jsconfig/

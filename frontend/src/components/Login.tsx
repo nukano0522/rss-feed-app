@@ -1,32 +1,44 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  Container,
+import { 
+  Container, 
+  Box, 
+  Paper, 
+  Typography, 
+  TextField, 
+  Button 
 } from '@mui/material';
+import { useAuth } from '../hooks/useAuth';
 
-export const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+export const Login: React.FC = () => {
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: '',
+    password: ''
+  });
+  const [error, setError] = useState<string>('');
   const { login } = useAuth();
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    
+
     try {
-      await login(email, password);
-      navigate('/');
+      await login(formData.email, formData.password);
     } catch (err) {
       setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   return (
@@ -44,9 +56,10 @@ export const Login = () => {
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label="メールアドレス"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              label="メールアドレス!"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               margin="normal"
               required
               type="email"
@@ -54,8 +67,9 @@ export const Login = () => {
             <TextField
               fullWidth
               label="パスワード"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               margin="normal"
               required
               type="password"
