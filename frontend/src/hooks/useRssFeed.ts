@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api, { feedsApi } from '../services/api';
+import { feedsApi, RssEntry } from '../services/api';
 
 interface Feed {
   id: number;
@@ -13,33 +13,51 @@ interface Article {
   title: string;
   link: string;
   description?: string;
-  pubDate?: string;
+  published: string;
   feedUrl: string;
+  feedName: string;
   image?: string;
   categories?: string[];
+}
+
+interface FavoriteArticleData {
+  article_title: string;
+  article_link: string;
+  article_description: string | null;
+  article_image: string | null;
+  article_categories: string[];
+  favorited_at: string;
 }
 
 interface UseRssFeedReturn {
   feeds: Feed[];
   articles: Article[];
+  readArticles: string[];
   isLoading: boolean;
+  favoriteArticles: string[];
+  favoriteArticlesList: Article[];
   handleAddFeed: (newFeed: Omit<Feed, 'id'>) => Promise<Feed>;
   handleEditFeed: (feedId: number, updatedFeed: Partial<Feed>) => Promise<Feed>;
   handleDeleteFeed: (feedId: number) => Promise<void>;
   handleToggleFeed: (feedId: number) => Promise<void>;
+  readArticle: (articleLink: string) => Promise<void>;
+  toggleFavorite: (article: Article) => Promise<void>;
   fetchArticles: (feeds: Feed[]) => Promise<void>;
 }
 
 export const useRssFeed = (): UseRssFeedReturn => {
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [readArticles, setReadArticles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [favoriteArticles, setFavoriteArticles] = useState<string[]>([]);
+  const [favoriteArticlesList, setFavoriteArticlesList] = useState<Article[]>([]);
 
   const fetchFeeds = async (): Promise<Feed[]> => {
     try {
-      const response = await api.get<Feed[]>('/feeds');
-      setFeeds(response.data);
-      return response.data;
+      const { data } = await feedsApi.getFeeds();
+      setFeeds(data);
+      return data;
     } catch (error) {
       console.error('Error fetching feeds:', error);
       return [];
@@ -50,10 +68,36 @@ export const useRssFeed = (): UseRssFeedReturn => {
     try {
       setIsLoading(true);
       const enabledFeeds = feeds.filter(feed => feed.enabled);
-      const response = await api.post<Article[]>('/feeds/fetch-articles', {
-        feeds: enabledFeeds
-      });
-      setArticles(response.data);
+      
+      const fetchedArticles = [];
+      for (const feed of enabledFeeds) {
+        try {
+          console.log(`Fetching feed: ${feed.url}`);
+          const response = await feedsApi.parseFeed(feed.url);
+          
+          if (response.data && response.data.entries) {
+            const feedArticles = response.data.entries.map((article: RssEntry) => ({
+              ...article,
+              feedName: feed.name || feed.url,
+              feedUrl: feed.url
+            }));
+            fetchedArticles.push(...feedArticles);
+          }
+        } catch (error) {
+          console.error(`Error fetching articles from ${feed.url}:`, error);
+          continue;
+        }
+      }
+
+      if (fetchedArticles.length > 0) {
+        const sortedArticles = fetchedArticles.sort((a, b) => 
+          new Date(b.published).getTime() - new Date(a.published).getTime()
+        );
+        setArticles(sortedArticles);
+      } else {
+        console.warn('No articles fetched from any feed');
+        setArticles([]);
+      }
     } catch (error) {
       console.error('Error in fetchArticles:', error);
       setArticles([]);
@@ -85,7 +129,7 @@ export const useRssFeed = (): UseRssFeedReturn => {
   // フィードの追加
   const handleAddFeed = async (newFeed: Omit<Feed, 'id'>): Promise<Feed> => {
     try {
-      const response = await api.post<Feed>('/feeds', newFeed);
+      const response = await feedsApi.createFeed(newFeed);
       setFeeds(prev => [...prev, response.data]);
       return response.data;
     } catch (error) {
@@ -97,7 +141,7 @@ export const useRssFeed = (): UseRssFeedReturn => {
   // フィードの編集
   const handleEditFeed = async (feedId: number, updatedFeed: Partial<Feed>): Promise<Feed> => {
     try {
-      const response = await api.put<Feed>(`/feeds/${feedId}`, updatedFeed);
+      const response = await feedsApi.updateFeed(feedId, updatedFeed);
       setFeeds(prev => prev.map(feed => 
         feed.id === feedId ? response.data : feed
       ));
@@ -111,7 +155,7 @@ export const useRssFeed = (): UseRssFeedReturn => {
   // フィードの削除
   const handleDeleteFeed = async (feedId: number): Promise<void> => {
     try {
-      await api.delete(`/feeds/${feedId}`);
+      await feedsApi.deleteFeed(feedId);
       setFeeds(prev => prev.filter(feed => feed.id !== feedId));
     } catch (error) {
       console.error('Error deleting feed:', error);
@@ -127,14 +171,109 @@ export const useRssFeed = (): UseRssFeedReturn => {
     }
   };
 
+  // 記事を既読にする
+  const readArticle = async (articleLink: string): Promise<void> => {
+    try {
+      await feedsApi.readArticle(articleLink);
+      setReadArticles(prev => [...prev, articleLink]);
+    } catch (error) {
+      console.error('Error marking article as read:', error);
+      throw error;
+    }
+  };
+
+  // お気に入り記事の取得
+  useEffect(() => {
+    const fetchFavoriteArticles = async () => {
+      try {
+        // 完全な記事データを取得
+        const response = await feedsApi.getFavoriteArticles();
+        const favoriteArticlesData: FavoriteArticleData[] = response.data;
+        
+        // お気に入り記事のリンク一覧を更新
+        const favoriteLinks = favoriteArticlesData.map(article => article.article_link);
+        setFavoriteArticles(favoriteLinks);
+        
+        // お気に入り記事の完全なデータを保持
+        setFavoriteArticlesList(favoriteArticlesData.map(article => ({
+          title: article.article_title,
+          link: article.article_link,
+          description: article.article_description || '',
+          image: article.article_image || '',
+          categories: article.article_categories || [],
+          published: article.favorited_at,
+          feedName: 'お気に入り',
+          feedUrl: ''
+        })));
+      } catch (error) {
+        console.error('Error fetching favorite articles:', error);
+      }
+    };
+
+    fetchFavoriteArticles();
+  }, []);
+
+  // お気に入り登録・解除の処理
+  const toggleFavorite = async (article: Article): Promise<void> => {
+    try {
+      if (favoriteArticles.includes(article.link)) {
+        // お気に入り解除
+        await feedsApi.removeFavoriteArticle(article.link);
+        setFavoriteArticles(prev => prev.filter(link => link !== article.link));
+        setFavoriteArticlesList(prev => prev.filter(a => a.link !== article.link));
+      } else {
+        // お気に入り登録
+        await feedsApi.addFavoriteArticle(article);
+        setFavoriteArticles(prev => [...prev, article.link]);
+        setFavoriteArticlesList(prev => [...prev, {
+          title: article.title,
+          link: article.link,
+          description: article.description || '',
+          image: article.image || '',
+          categories: article.categories || [],
+          published: new Date().toISOString(),
+          feedName: 'お気に入り',
+          feedUrl: ''
+        }]);
+      }
+
+      // お気に入り記事の一覧を再取得して最新の状態に更新
+      const response = await feedsApi.getFavoriteArticles();
+      const favoriteArticlesData: FavoriteArticleData[] = response.data;
+      
+      // お気に入り記事のリンク一覧を更新
+      setFavoriteArticles(favoriteArticlesData.map(article => article.article_link));
+      
+      // お気に入り記事の完全なデータを更新
+      setFavoriteArticlesList(favoriteArticlesData.map(article => ({
+        title: article.article_title,
+        link: article.article_link,
+        description: article.article_description || '',
+        image: article.article_image || '',
+        categories: article.article_categories || [],
+        published: article.favorited_at,
+        feedName: 'お気に入り',
+        feedUrl: ''
+      })));
+
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
+
   return {
     feeds,
     articles,
+    readArticles,
     isLoading,
+    favoriteArticles,
+    favoriteArticlesList,
     handleAddFeed,
     handleEditFeed,
     handleDeleteFeed,
     handleToggleFeed,
+    readArticle,
+    toggleFavorite,
     fetchArticles
   };
 }; 

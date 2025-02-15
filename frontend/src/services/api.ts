@@ -1,6 +1,14 @@
 import axios from 'axios';
 import config from '../config';
 
+const api = axios.create({
+  baseURL: config.apiUrl,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
 interface Feed {
   id: number;
   name: string;
@@ -19,12 +27,32 @@ interface Article {
   categories?: string[];
 }
 
-const api = axios.create({
-  baseURL: `${config.apiUrl}`,
-  headers: {
-    'Content-Type': 'application/json',
-  }
-});
+export interface RssEntry {
+  title: string;
+  link: string;
+  description?: string;
+  published: string;
+  image?: string;
+  categories?: string[];
+}
+
+interface RssFeedResponse {
+  entries: RssEntry[];
+  status: string;
+  feed: any;
+}
+
+interface ApiResponse<T> {
+  data: T;
+}
+
+interface FavoriteArticleRequest {
+  article_link: string;
+  article_title: string;
+  article_description: string;
+  article_image: string;
+  article_categories: string[];
+}
 
 api.interceptors.request.use(
   (config) => {
@@ -51,40 +79,22 @@ api.interceptors.response.use(
   }
 );
 
-// feedsApiの型定義
-interface FeedApiResponse<T> {
-  data: T;
-  status: number;
-}
-
 export const feedsApi = {
-  getFeeds: () => api.get<FeedApiResponse<Feed[]>>('/feeds'),
-  createFeed: (feed: Omit<Feed, 'id'>) => 
-    api.post<FeedApiResponse<Feed>>('/feeds', feed),
-  updateFeed: (id: number, feed: Partial<Feed>) => 
-    api.put<FeedApiResponse<Feed>>(`/feeds/${id}`, feed),
-  deleteFeed: (id: number) => 
-    api.delete(`/feeds/${id}`),
-  readArticle: (articleLink: string) => 
-    api.post('/feeds/read-articles', { article_link: articleLink }),
-  parseFeed: (url: string) => 
-    api.get(`/feeds/parse-feed?url=${url}`),
-  getFavoriteArticles: () => 
-    api.get('/feeds/favorite-articles'),
-  checkFavoriteArticles: () => 
-    api.get('/feeds/favorite-articles/check'),
-  addFavoriteArticle: (article: Article) => 
-    api.post('/feeds/favorite-articles', {
-      article_link: article.link,
-      article_title: article.title,
-      article_description: article.description || '',
-      article_image: article.image || '',
-      article_categories: article.categories || []
-    }),
-  removeFavoriteArticle: (articleLink: string) => {
-    const encodedLink = btoa(articleLink);
-    return api.delete(`/feeds/favorite-articles/${encodedLink}`);
-  },
+  getFeeds: () => api.get<Feed[]>('/feeds'),
+  createFeed: (feed: Omit<Feed, 'id'>) => api.post<Feed>('/feeds', feed),
+  updateFeed: (id: number, feed: Partial<Feed>) => api.put<Feed>(`/feeds/${id}`, feed),
+  deleteFeed: (id: number) => api.delete(`/feeds/${id}`),
+  parseFeed: (url: string) => api.get<RssFeedResponse>(`/feeds/parse-feed?url=${encodeURIComponent(url)}`),
+  readArticle: (articleLink: string) => api.post('/feeds/read-articles', { article_link: articleLink }),
+  getFavoriteArticles: () => api.get('/feeds/favorite-articles'),
+  addFavoriteArticle: (article: Article) => api.post('/feeds/favorite-articles', {
+    article_link: article.link,
+    article_title: article.title,
+    article_description: article.description || '',
+    article_image: article.image || '',
+    article_categories: article.categories || []
+  } as FavoriteArticleRequest),
+  removeFavoriteArticle: (articleLink: string) => api.delete(`/feeds/favorite-articles/${btoa(articleLink)}`),
 };
 
 export default api; 

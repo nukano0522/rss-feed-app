@@ -3,7 +3,8 @@ import { Box, CssBaseline } from '@mui/material';
 import FeedManager from './FeedManager';
 import ArticleList from './ArticleList';
 import Navigation from './Navigation';
-import { useRssFeed } from '../hooks/useRssFeed';
+// import { useRssFeed } from '../hooks/useRssFeed';
+import { useRssFeed } from '../hooks/useRssFeed.ts';
 
 const RssFeedReader = () => {
   const [selectedMenu, setSelectedMenu] = useState(() => {

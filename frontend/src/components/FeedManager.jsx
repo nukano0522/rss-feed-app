@@ -19,7 +19,8 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { useRssFeed } from '../hooks/useRssFeed';
+// import { useRssFeed } from '../hooks/useRssFeed';
+import { useRssFeed } from '../hooks/useRssFeed.ts';
 
 // デフォルト画像の定義
 const DEFAULT_IMAGES = {
