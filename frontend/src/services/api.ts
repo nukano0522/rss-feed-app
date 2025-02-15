@@ -1,6 +1,6 @@
 import axios from 'axios';
 import config from '../config';
-
+import { Feed, Article, RssFeedResponse, FavoriteArticleRequest } from '../types';
 const api = axios.create({
   baseURL: config.apiUrl,
   headers: {
@@ -9,50 +9,17 @@ const api = axios.create({
   withCredentials: true,
 });
 
-interface Feed {
-  id: number;
-  name: string;
-  url: string;
-  enabled: boolean;
-  default_image: string | null;
-}
-
-interface Article {
-  title: string;
-  link: string;
-  description?: string;
-  pubDate?: string;
-  feedUrl: string;
-  image?: string;
-  categories?: string[];
-}
-
-export interface RssEntry {
-  title: string;
-  link: string;
-  description?: string;
-  published: string;
-  image?: string;
-  categories?: string[];
-}
-
-interface RssFeedResponse {
-  entries: RssEntry[];
-  status: string;
-  feed: any;
-}
-
 interface ApiResponse<T> {
   data: T;
 }
 
-interface FavoriteArticleRequest {
-  article_link: string;
-  article_title: string;
-  article_description: string;
-  article_image: string;
-  article_categories: string[];
-}
+// interface FavoriteArticleRequest {
+//   article_link: string;
+//   article_title: string;
+//   article_description: string;
+//   article_image: string;
+//   article_categories: string[];
+// }
 
 api.interceptors.request.use(
   (config) => {

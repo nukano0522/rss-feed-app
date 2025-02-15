@@ -15,9 +15,10 @@ import {
 import { styled } from '@mui/material/styles';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
+import { ArticleFilterProps, ArticleListProps } from '../types/components';
 
 const StyledCard = styled(Card)(({ theme }) => ({
-  width: '450px', // カードの横幅
+  width: '450px',
   height: '100%',
   display: 'flex',
   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
@@ -76,10 +77,15 @@ const StyledButtonBase = styled(ButtonBase)({
   }
 });
 
-const ArticleFilter = ({ feeds, selectedFeeds, onFilterChange, readFilter, onReadFilterChange }) => {
+const ArticleFilter: React.FC<ArticleFilterProps> = ({ 
+  feeds, 
+  selectedFeeds, 
+  onFilterChange, 
+  readFilter, 
+  onReadFilterChange 
+}) => {
   return (
     <Box sx={{ mb: 3 }}>
-      {/* フィードフィルター */}
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
         フィードでフィルター
       </Typography>
@@ -89,18 +95,18 @@ const ArticleFilter = ({ feeds, selectedFeeds, onFilterChange, readFilter, onRea
             key={feed.id}
             label={feed.name}
             onClick={() => {
-              if (selectedFeeds.includes(feed.id)) {
-                onFilterChange(selectedFeeds.filter(id => id !== feed.id));
+              if (selectedFeeds.includes(feed.id.toString())) {
+                onFilterChange(selectedFeeds.filter(id => id !== feed.id.toString()));
               } else {
-                onFilterChange([...selectedFeeds, feed.id]);
+                onFilterChange([...selectedFeeds, feed.id.toString()]);
               }
             }}
-            color={selectedFeeds.includes(feed.id) ? "primary" : "default"}
-            variant={selectedFeeds.includes(feed.id) ? "filled" : "outlined"}
+            color={selectedFeeds.includes(feed.id.toString()) ? "primary" : "default"}
+            variant={selectedFeeds.includes(feed.id.toString()) ? "filled" : "outlined"}
             sx={{ 
               cursor: 'pointer',
               '&:hover': {
-                backgroundColor: selectedFeeds.includes(feed.id) 
+                backgroundColor: selectedFeeds.includes(feed.id.toString()) 
                   ? 'primary.dark' 
                   : 'action.hover'
               }
@@ -117,7 +123,6 @@ const ArticleFilter = ({ feeds, selectedFeeds, onFilterChange, readFilter, onRea
         )}
       </Box>
 
-      {/* 既読/未読フィルター */}
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
         既読状態
       </Typography>
@@ -148,7 +153,7 @@ const ArticleFilter = ({ feeds, selectedFeeds, onFilterChange, readFilter, onRea
   );
 };
 
-const ArticleList = ({ 
+const ArticleList: React.FC<ArticleListProps> = ({ 
   articles, 
   readArticles, 
   isLoading, 
@@ -157,20 +162,18 @@ const ArticleList = ({
   favoriteArticles,
   onToggleFavorite 
 }) => {
-  const [selectedFeeds, setSelectedFeeds] = useState([]);
-  const [readFilter, setReadFilter] = useState('all'); // 'all' | 'read' | 'unread'
+  const [selectedFeeds, setSelectedFeeds] = useState<string[]>([]);
+  const [readFilter, setReadFilter] = useState<'all' | 'read' | 'unread'>('all');
 
   const filteredArticles = useMemo(() => {
     return articles.filter(article => {
-      // フィードフィルター
       if (selectedFeeds.length > 0) {
         const feed = feeds.find(f => f.url === article.feedUrl);
-        if (!feed || !selectedFeeds.includes(feed.id)) {
+        if (!feed || !selectedFeeds.includes(feed.id.toString())) {
           return false;
         }
       }
 
-      // 既読/未読フィルター
       const isRead = readArticles.includes(article.link);
       if (readFilter === 'read' && !isRead) return false;
       if (readFilter === 'unread' && isRead) return false;
@@ -187,7 +190,7 @@ const ArticleList = ({
     );
   }
 
-  const handleArticleClick = (articleLink) => {
+  const handleArticleClick = (articleLink: string): void => {
     onArticleRead(articleLink);
     window.open(articleLink, '_blank');
   };
@@ -233,12 +236,12 @@ const ArticleList = ({
               <StyledCard className={readArticles.includes(article.link) ? 'read' : ''}>
                 <Box sx={{ position: 'relative' }}>
                   <StyledCardMedia
-                    image={article.image || article.feedImage || '/default-image.jpg'}
+                    image={article.image || '/default-image.jpg'}
                     title={article.title}
                   />
                   <IconButton
-                    onClick={(e) => {
-                      e.stopPropagation(); // カード全体のクリックイベントを防ぐ
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
                       onToggleFavorite(article);
                     }}
                     sx={{
@@ -260,7 +263,7 @@ const ArticleList = ({
                 </Box>
                 <CardContent>
                   <Typography variant="caption" color="textSecondary">
-                    {article.feedName} · {new Date(article.published).toLocaleDateString()}
+                    {article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
                   </Typography>
                   <Typography variant="h6">
                     {article.title}

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Box, CssBaseline } from '@mui/material';
 import FeedManager from './FeedManager';
 import ArticleList from './ArticleList';
 import Navigation from './Navigation';
-// import { useRssFeed } from '../hooks/useRssFeed';
-import { useRssFeed } from '../hooks/useRssFeed.ts';
+import { useRssFeed } from '../hooks/useRssFeed';
+import { MenuType } from '../types';
 
-const RssFeedReader = () => {
-  const [selectedMenu, setSelectedMenu] = useState(() => {
-    const savedMenu = localStorage.getItem('selectedMenu');
+const RssFeedReader: React.FC = () => {
+  const [selectedMenu, setSelectedMenu] = useState<MenuType>(() => {
+    const savedMenu = localStorage.getItem('selectedMenu') as MenuType;
     return savedMenu || 'articles';
   });
 
@@ -27,7 +27,7 @@ const RssFeedReader = () => {
     toggleFavorite,
   } = useRssFeed();
 
-  const handleMenuSelect = (menu) => {
+  const handleMenuSelect = (menu: MenuType): void => {
     setSelectedMenu(menu);
     localStorage.setItem('selectedMenu', menu);
   };

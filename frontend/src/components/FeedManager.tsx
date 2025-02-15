@@ -15,37 +15,45 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Paper
+  Paper,
+  SelectChangeEvent
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-// import { useRssFeed } from '../hooks/useRssFeed';
-import { useRssFeed } from '../hooks/useRssFeed.ts';
+import { Feed, NewFeed } from '../types';
 
 // デフォルト画像の定義
-const DEFAULT_IMAGES = {
+const DEFAULT_IMAGES: Record<string, string> = {
   'azure_blog.svg': '/default-images/Microsoft_Azure.svg',
   'aws_blog.svg': '/default-images/Amazon_Web_Services_Logo.svg',
   'hatena_bookmark.svg': '/default-images/hatenabookmark_symbolmark.png',
-  // 必要に応じて追加
 };
 
-// https://b.hatena.ne.jp/entrylist/it.rss
-// https://aws.amazon.com/jp/blogs/aws/feed/
-// https://azure.microsoft.com/ja-jp/blog/feed/
+interface FeedManagerProps {
+  feeds: Feed[];
+  onAddFeed: (newFeed: Omit<Feed, "id">) => Promise<Feed>;
+  onToggleFeed: (feedId: number) => Promise<void>;
+  onDeleteFeed: (feedId: number) => Promise<void>;
+  onEditFeed: (feedId: number, updatedFeed: Partial<Feed>) => Promise<Feed>;
+}
 
-const FeedManager = () => {
-  const [newFeed, setNewFeed] = useState({
+const FeedManager: React.FC<FeedManagerProps> = ({
+  feeds,
+  onAddFeed,
+  onToggleFeed,
+  onDeleteFeed,
+  onEditFeed
+}) => {
+  const [newFeed, setNewFeed] = useState<NewFeed>({
     name: '',
     url: '',
     defaultImage: ''
   });
-  const [editingFeed, setEditingFeed] = useState(null);
-  const { feeds, handleAddFeed, handleEditFeed, handleToggleFeed, handleDeleteFeed } = useRssFeed();
+  const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
 
-  const handleAddNewFeed = () => {
+  const handleAddNewFeed = (): void => {
     if (newFeed.name && newFeed.url) {
-      handleAddFeed({
+      onAddFeed({
         name: newFeed.name,
         url: newFeed.url,
         enabled: true,
@@ -55,7 +63,7 @@ const FeedManager = () => {
     }
   };
 
-  const handleEditClick = (feed) => {
+  const handleEditClick = (feed: Feed): void => {
     setEditingFeed(feed);
     setNewFeed({
       name: feed.name,
@@ -64,7 +72,7 @@ const FeedManager = () => {
     });
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (): Promise<void> => {
     if (!editingFeed) return;
 
     const updatedFeed = {
@@ -74,13 +82,8 @@ const FeedManager = () => {
       default_image: newFeed.defaultImage || null
     };
 
-    console.log('handleSaveEdit:', {
-      feedId: editingFeed.id,
-      updatedFeed
-    });
-
     try {
-      await handleEditFeed(editingFeed.id, updatedFeed);
+      await onEditFeed(editingFeed.id, updatedFeed);
     } catch (error) {
       console.error('Error in handleSaveEdit:', error);
     } finally {
@@ -89,15 +92,22 @@ const FeedManager = () => {
     }
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = (): void => {
     setEditingFeed(null);
     setNewFeed({ name: '', url: '', defaultImage: '' });
   };
 
-  const handleInputChange = (field) => (event) => {
+  const handleTextInputChange = (field: keyof NewFeed) => (event: React.ChangeEvent<HTMLInputElement>): void => {
     setNewFeed({
       ...newFeed,
       [field]: event.target.value
+    });
+  };
+
+  const handleSelectChange = (event: SelectChangeEvent<string>): void => {
+    setNewFeed({
+      ...newFeed,
+      defaultImage: event.target.value
     });
   };
 
@@ -113,7 +123,7 @@ const FeedManager = () => {
               fullWidth
               label="ページ名"
               value={newFeed.name}
-              onChange={handleInputChange('name')}
+              onChange={handleTextInputChange('name')}
               placeholder="例：はてなブックマーク"
               required
             />
@@ -123,7 +133,7 @@ const FeedManager = () => {
               fullWidth
               label="フィードURL"
               value={newFeed.url}
-              onChange={handleInputChange('url')}
+              onChange={handleTextInputChange('url')}
               placeholder="RSSフィードのURLを入力"
               required
             />
@@ -133,7 +143,7 @@ const FeedManager = () => {
               <InputLabel>デフォルト画像</InputLabel>
               <Select
                 value={newFeed.defaultImage}
-                onChange={handleInputChange('defaultImage')}
+                onChange={handleSelectChange}
                 label="デフォルト画像"
               >
                 <MenuItem value="">
@@ -222,7 +232,7 @@ const FeedManager = () => {
               <Switch
                 edge="end"
                 checked={feed.enabled}
-                onChange={() => handleToggleFeed(feed.id)}
+                onChange={() => onToggleFeed(feed.id)}
                 inputProps={{ 'aria-label': 'toggle feed' }}
               />
               <IconButton 
@@ -236,7 +246,7 @@ const FeedManager = () => {
               <IconButton 
                 edge="end" 
                 aria-label="delete"
-                onClick={() => handleDeleteFeed(feed.id)}
+                onClick={() => onDeleteFeed(feed.id)}
                 sx={{ ml: 1 }}
               >
                 <DeleteIcon />

@@ -1,33 +1,9 @@
 import { useState, useEffect } from 'react';
-import { feedsApi, RssEntry } from '../services/api';
+import { feedsApi } from '../services/api';
 
-interface Feed {
-  id: number;
-  name: string;
-  url: string;
-  enabled: boolean;
-  default_image: string | null;
-}
+import { MOCK_ARTICLES } from '../mocks/feedData.ts';
+import { Feed, Article, FavoriteArticleData, RssEntry } from '../types';
 
-interface Article {
-  title: string;
-  link: string;
-  description?: string;
-  published: string;
-  feedUrl: string;
-  feedName: string;
-  image?: string;
-  categories?: string[];
-}
-
-interface FavoriteArticleData {
-  article_title: string;
-  article_link: string;
-  article_description: string | null;
-  article_image: string | null;
-  article_categories: string[];
-  favorited_at: string;
-}
 
 interface UseRssFeedReturn {
   feeds: Feed[];
@@ -75,7 +51,12 @@ export const useRssFeed = (): UseRssFeedReturn => {
           console.log(`Fetching feed: ${feed.url}`);
           const response = await feedsApi.parseFeed(feed.url);
           
-          if (response.data && response.data.entries) {
+          // 429エラーの場合、モックデータを使用
+          if (response.data.status === "error" && response.data.code === 429) {
+            console.log(`Using mock data for ${feed.url} due to rate limit`);
+            const mockArticles = MOCK_ARTICLES[feed.url] || [];
+            fetchedArticles.push(...mockArticles);
+          } else if (response.data && response.data.entries) {
             const feedArticles = response.data.entries.map((article: RssEntry) => ({
               ...article,
               feedName: feed.name || feed.url,
@@ -90,9 +71,12 @@ export const useRssFeed = (): UseRssFeedReturn => {
       }
 
       if (fetchedArticles.length > 0) {
-        const sortedArticles = fetchedArticles.sort((a, b) => 
-          new Date(b.published).getTime() - new Date(a.published).getTime()
-        );
+        const sortedArticles = fetchedArticles
+          .map(article => ({
+            ...article,
+            published: new Date(article.published)
+          }))
+          .sort((a, b) => b.published.getTime() - a.published.getTime());
         setArticles(sortedArticles);
       } else {
         console.warn('No articles fetched from any feed');
@@ -201,7 +185,7 @@ export const useRssFeed = (): UseRssFeedReturn => {
           description: article.article_description || '',
           image: article.article_image || '',
           categories: article.article_categories || [],
-          published: article.favorited_at,
+          published: new Date(article.favorited_at),
           feedName: 'お気に入り',
           feedUrl: ''
         })));
@@ -231,7 +215,7 @@ export const useRssFeed = (): UseRssFeedReturn => {
           description: article.description || '',
           image: article.image || '',
           categories: article.categories || [],
-          published: new Date().toISOString(),
+          published: new Date(),
           feedName: 'お気に入り',
           feedUrl: ''
         }]);
@@ -251,7 +235,7 @@ export const useRssFeed = (): UseRssFeedReturn => {
         description: article.article_description || '',
         image: article.article_image || '',
         categories: article.article_categories || [],
-        published: article.favorited_at,
+        published: new Date(article.favorited_at),
         feedName: 'お気に入り',
         feedUrl: ''
       })));

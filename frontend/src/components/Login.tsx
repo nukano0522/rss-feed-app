@@ -8,11 +8,8 @@ import {
   Button 
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
+import { LoginFormData } from '../types';
 
-interface LoginFormData {
-  email: string;
-  password: string;
-}
 
 export const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({
@@ -56,7 +53,7 @@ export const Login: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label="メールアドレス!"
+              label="メールアドレス"
               name="email"
               value={formData.email}
               onChange={handleChange}

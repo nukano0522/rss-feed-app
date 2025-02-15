@@ -9,7 +9,6 @@ import {
   Typography,
   Divider,
   Box,
-  Button
 } from '@mui/material';
 import RssFeedIcon from '@mui/icons-material/RssFeed';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -17,13 +16,19 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import StarIcon from '@mui/icons-material/Star';
 import { useAuth } from '../hooks/useAuth';
 
+type MenuType = 'feeds' | 'articles' | 'favorites';
+
+interface NavigationProps {
+  selectedMenu: MenuType;
+  onMenuSelect: (menu: MenuType) => void;
+}
 
 const drawerWidth = 240;
 
-export default function Navigation({ selectedMenu, onMenuSelect }) {
+const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) => {
   const { logout } = useAuth();
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       await logout();
     } catch (error) {
@@ -104,4 +109,6 @@ export default function Navigation({ selectedMenu, onMenuSelect }) {
       </Box>
     </Drawer>
   );
-} 
+};
+
+export default Navigation; 
