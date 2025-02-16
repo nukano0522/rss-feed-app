@@ -13,14 +13,6 @@ interface ApiResponse<T> {
   data: T;
 }
 
-// interface FavoriteArticleRequest {
-//   article_link: string;
-//   article_title: string;
-//   article_description: string;
-//   article_image: string;
-//   article_categories: string[];
-// }
-
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -53,13 +45,15 @@ export const feedsApi = {
   deleteFeed: (id: number) => api.delete(`/feeds/${id}`),
   parseFeed: (url: string) => api.get<RssFeedResponse>(`/feeds/parse-feed?url=${encodeURIComponent(url)}`),
   readArticle: (articleLink: string) => api.post('/feeds/read-articles', { article_link: articleLink }),
+  getReadArticles: () => api.get('/feeds/read-articles'),
   getFavoriteArticles: () => api.get('/feeds/favorite-articles'),
   addFavoriteArticle: (article: Article) => api.post('/feeds/favorite-articles', {
     article_link: article.link,
     article_title: article.title,
     article_description: article.description || '',
     article_image: article.image || '',
-    article_categories: article.categories || []
+    article_categories: article.categories || [],
+    feed_id: article.feed_id
   } as FavoriteArticleRequest),
   removeFavoriteArticle: (articleLink: string) => api.delete(`/feeds/favorite-articles/${btoa(articleLink)}`),
 };

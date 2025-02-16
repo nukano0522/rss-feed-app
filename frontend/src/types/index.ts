@@ -23,8 +23,10 @@ export interface Article {
     description?: string;
     published?: Date;
     feedUrl: string;
+    feedName?: string;
     image?: string;
     categories?: string[];
+    feed_id?: number;
 }
 
 export interface RssEntry {
@@ -43,21 +45,24 @@ export interface RssFeedResponse {
     code?: number;
   }
 
-export interface FavoriteArticleRequest {
+// FavoriteArticleBase に相当する基本インターフェース
+export interface FavoriteArticleBase {
     article_link: string;
     article_title: string;
-    article_description: string;
-    article_image: string;
+    article_description: string | null;
+    article_image: string | null;
     article_categories: string[];
-  }
+    feed_id: number;
+}
 
-export interface FavoriteArticleData {
-  article_title: string;
-  article_link: string;
-  article_description: string | null;
-  article_image: string | null;
-  article_categories: string[];
-  favorited_at: Date;
+// FavoriteArticleCreate に相当する（リクエスト用）
+export interface FavoriteArticleRequest extends FavoriteArticleBase {}
+
+// FavoriteArticle に相当する（レスポンス用）
+export interface FavoriteArticleData extends FavoriteArticleBase {
+    id: number;
+    user_id: number;
+    favorited_at: Date;
 }
 
 export type MenuType = 'articles' | 'feeds' | 'favorites'; 

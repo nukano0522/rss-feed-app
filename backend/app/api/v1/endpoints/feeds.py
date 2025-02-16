@@ -182,19 +182,32 @@ async def add_favorite_article(
 ):
     """記事をお気に入りに追加"""
     try:
+        # フィードの存在確認
+        feed_result = await session.execute(
+            select(models.Feed).filter(models.Feed.id == article.feed_id)
+        )
+        feed = feed_result.scalar_one_or_none()
+        if not feed:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="指定されたフィードが見つかりません",
+            )
+
         new_favorite = models.FavoriteArticle(
             article_link=article.article_link,
             article_title=article.article_title,
             article_description=article.article_description,
             article_image=article.article_image,
-            article_categories=article.article_categories
-            or [],  # 空リストをデフォルト値として設定
+            article_categories=article.article_categories or [],
+            feed_id=article.feed_id,
             user_id=user.id,
         )
         session.add(new_favorite)
         await session.commit()
         await session.refresh(new_favorite)
         return new_favorite
+    except HTTPException:
+        raise
     except Exception as e:
         await session.rollback()
         if "uq_favorite_article_user" in str(e):
@@ -202,6 +215,7 @@ async def add_favorite_article(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="この記事は既にお気に入りに登録されています",
             )
+        logger.error(f"Error adding favorite article: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="お気に入り登録中にエラーが発生しました",

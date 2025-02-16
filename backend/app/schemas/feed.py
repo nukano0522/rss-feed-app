@@ -49,9 +49,10 @@ class ReadArticle(ReadArticleBase):
 class FavoriteArticleBase(BaseModel):
     article_link: str
     article_title: str
-    article_description: str | None = None
-    article_image: str | None = None
-    article_categories: list[str] | None = None
+    article_description: Optional[str] = None
+    article_image: Optional[str] = None
+    article_categories: Optional[List[str]] = []
+    feed_id: int
 
 
 class FavoriteArticleCreate(FavoriteArticleBase):
@@ -60,8 +61,8 @@ class FavoriteArticleCreate(FavoriteArticleBase):
 
 class FavoriteArticle(FavoriteArticleBase):
     id: int
-    favorited_at: datetime
     user_id: int
+    favorited_at: datetime
 
     class Config:
         from_attributes = True

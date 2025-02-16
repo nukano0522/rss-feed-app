@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ArticleFilterProps, ArticleListProps } from '../types/components';
+import { Article } from '../types';
 import {
   Card,
   CardContent,
@@ -108,6 +109,31 @@ const ArticleList: React.FC<ArticleListProps> = ({
     }, {} as Record<string, string | null>);
   }, [feeds]);
 
+  const feedIdMap = useMemo(() => {
+    return feeds.reduce((acc, feed) => {
+      acc[feed.url] = feed.id;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [feeds]);
+
+  const feedNameMap = useMemo(() => {
+    return feeds.reduce((acc, feed) => {
+      acc[feed.url] = feed.name;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [feeds]);
+
+  const handleToggleFavorite = (article: Article, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const feedId = feedIdMap[article.feedUrl];
+    if (feedId) {
+      onToggleFavorite({
+        ...article,
+        feed_id: feedId
+      });
+    }
+  };
+
   const filteredArticles = useMemo(() => {
     return articles.filter(article => {
       if (selectedFeeds.length > 0) {
@@ -183,10 +209,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 bg-white/80 hover:bg-white/90"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleFavorite(article);
-                        }}
+                        onClick={(e) => handleToggleFavorite(article, e)}
                       >
                         {favoriteArticles.includes(article.link) ? (
                           <Star className="h-4 w-4 text-yellow-500" />
@@ -204,7 +227,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
               <div className="flex-1 min-w-0">
                 <CardContent className="p-3">
                   <div className="text-xs text-muted-foreground mb-1 truncate">
-                    {article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
+                    {article.feedName || feedNameMap[article.feedUrl] || article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
                   </div>
                   <CardTitle className="text-base mb-1 line-clamp-4">
                     {article.title}

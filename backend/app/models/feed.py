@@ -39,6 +39,7 @@ class FavoriteArticle(Base):
     __tablename__ = "favorite_articles"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=False)
     article_link = Column(String(767), nullable=False)
     article_title = Column(String(512), nullable=False)
     article_description = Column(Text, nullable=True)

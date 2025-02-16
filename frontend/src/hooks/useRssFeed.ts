@@ -97,6 +97,13 @@ export const useRssFeed = (): UseRssFeedReturn => {
       if (feeds.length > 0) {
         await fetchArticles(feeds);
       }
+      // 既読記事の一覧を取得
+      try {
+        const response = await feedsApi.getReadArticles();
+        setReadArticles(response.data.read_articles);
+      } catch (error) {
+        console.error('Error fetching read articles:', error);
+      }
       setIsLoading(false);
     };
 
@@ -179,27 +186,37 @@ export const useRssFeed = (): UseRssFeedReturn => {
         setFavoriteArticles(favoriteLinks);
         
         // お気に入り記事の完全なデータを保持
-        setFavoriteArticlesList(favoriteArticlesData.map(article => ({
-          title: article.article_title,
-          link: article.article_link,
-          description: article.article_description || '',
-          image: article.article_image || '',
-          categories: article.article_categories || [],
-          published: new Date(article.favorited_at),
-          feedName: 'お気に入り',
-          feedUrl: ''
-        })));
+        setFavoriteArticlesList(favoriteArticlesData.map(article => {
+          const feed = feeds.find(f => f.id === article.feed_id);
+          return {
+            title: article.article_title,
+            link: article.article_link,
+            description: article.article_description || '',
+            image: article.article_image || '',
+            categories: article.article_categories || [],
+            published: new Date(article.favorited_at),
+            feedUrl: feed?.url || '',
+            feedName: feed?.name || 'Unknown Feed',
+            feed_id: article.feed_id
+          };
+        }));
       } catch (error) {
         console.error('Error fetching favorite articles:', error);
       }
     };
 
     fetchFavoriteArticles();
-  }, []);
+  }, [feeds]);
 
   // お気に入り登録・解除の処理
   const toggleFavorite = async (article: Article): Promise<void> => {
     try {
+      const feed = feeds.find(f => f.url === article.feedUrl);
+      if (!feed) {
+        console.error('Feed not found for article:', article);
+        return;
+      }
+
       if (favoriteArticles.includes(article.link)) {
         // お気に入り解除
         await feedsApi.removeFavoriteArticle(article.link);
@@ -216,8 +233,9 @@ export const useRssFeed = (): UseRssFeedReturn => {
           image: article.image || '',
           categories: article.categories || [],
           published: new Date(),
-          feedName: 'お気に入り',
-          feedUrl: ''
+          feedUrl: feed.url,
+          feedName: feed.name,
+          feed_id: feed.id
         }]);
       }
 
@@ -229,16 +247,20 @@ export const useRssFeed = (): UseRssFeedReturn => {
       setFavoriteArticles(favoriteArticlesData.map(article => article.article_link));
       
       // お気に入り記事の完全なデータを更新
-      setFavoriteArticlesList(favoriteArticlesData.map(article => ({
-        title: article.article_title,
-        link: article.article_link,
-        description: article.article_description || '',
-        image: article.article_image || '',
-        categories: article.article_categories || [],
-        published: new Date(article.favorited_at),
-        feedName: 'お気に入り',
-        feedUrl: ''
-      })));
+      setFavoriteArticlesList(favoriteArticlesData.map(article => {
+        const feed = feeds.find(f => f.id === article.feed_id);
+        return {
+          title: article.article_title,
+          link: article.article_link,
+          description: article.article_description || '',
+          image: article.article_image || '',
+          categories: article.article_categories || [],
+          published: new Date(article.favorited_at),
+          feedUrl: feed?.url || '',
+          feedName: feed?.name || 'Unknown Feed',
+          feed_id: article.feed_id
+        };
+      }));
 
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
