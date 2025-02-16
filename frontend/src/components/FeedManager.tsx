@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
-import { 
-  TextField, 
-  Button, 
-  List,
-  ListItem,
-  Typography,
-  Box,
-  Switch,
-  ListItemText,
-  IconButton,
-  ListItemSecondaryAction,
-  Grid,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Paper,
-  SelectChangeEvent
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
 import { Feed, NewFeed } from '../types';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Pencil, Trash2 } from "lucide-react"
 
 // デフォルト画像の定義
 const DEFAULT_IMAGES: Record<string, string> = {
@@ -97,165 +102,148 @@ const FeedManager: React.FC<FeedManagerProps> = ({
     setNewFeed({ name: '', url: '', defaultImage: '' });
   };
 
-  const handleTextInputChange = (field: keyof NewFeed) => (event: React.ChangeEvent<HTMLInputElement>): void => {
-    setNewFeed({
-      ...newFeed,
-      [field]: event.target.value
-    });
-  };
-
-  const handleSelectChange = (event: SelectChangeEvent<string>): void => {
-    setNewFeed({
-      ...newFeed,
-      defaultImage: event.target.value
-    });
-  };
-
   return (
-    <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
-        RSSフィード管理
-      </Typography>
-      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="ページ名"
-              value={newFeed.name}
-              onChange={handleTextInputChange('name')}
-              placeholder="例：はてなブックマーク"
-              required
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="フィードURL"
-              value={newFeed.url}
-              onChange={handleTextInputChange('url')}
-              placeholder="RSSフィードのURLを入力"
-              required
-            />
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>デフォルト画像</InputLabel>
-              <Select
-                value={newFeed.defaultImage}
-                onChange={handleSelectChange}
-                label="デフォルト画像"
-              >
-                <MenuItem value="">
-                  <em>なし</em>
-                </MenuItem>
-                {Object.entries(DEFAULT_IMAGES).map(([name, path]) => (
-                  <MenuItem key={name} value={path}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <img 
-                        src={path} 
-                        alt={name} 
-                        style={{ width: 24, height: 24 }} 
-                      />
-                      {name}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            {editingFeed ? (
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button 
-                  variant="contained" 
-                  color="primary"
-                  onClick={handleSaveEdit}
-                  fullWidth
-                  sx={{ height: '56px' }}
-                  disabled={!newFeed.name || !newFeed.url}
-                >
-                  保存
-                </Button>
-                <Button 
-                  variant="outlined"
-                  onClick={handleCancelEdit}
-                  fullWidth
-                  sx={{ height: '56px' }}
-                >
-                  キャンセル
-                </Button>
-              </Box>
-            ) : (
-              <Button 
-                variant="contained" 
-                onClick={handleAddNewFeed}
-                fullWidth
-                sx={{ height: '56px' }}
-                disabled={!newFeed.name || !newFeed.url}
-              >
-                追加
-              </Button>
-            )}
-          </Grid>
-        </Grid>
-      </Paper>
-
-      <List>
-        {feeds.map((feed) => (
-          <ListItem 
-            key={feed.id}
-            sx={{ 
-              pr: 8,
-              opacity: feed.enabled ? 1 : 0.5,
-              transition: 'opacity 0.3s'
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {feed.default_image && (
-                <img 
-                  src={feed.default_image} 
-                  alt={feed.name} 
-                  style={{ width: 24, height: 24 }} 
+    <div className="container mx-auto py-6">
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>RSSフィード管理</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">フィード名</Label>
+                <Input
+                  id="name"
+                  placeholder="例：はてなブックマーク"
+                  value={newFeed.name}
+                  onChange={(e) => setNewFeed({ ...newFeed, name: e.target.value })}
                 />
-              )}
-              <ListItemText 
-                primary={feed.name || '名称未設定'}
-                secondary={feed.url}
-                sx={{ 
-                  wordBreak: 'break-all',
-                  mr: 2
-                }}
-              />
-            </Box>
-            <ListItemSecondaryAction sx={{ display: 'flex', alignItems: 'center' }}>
-              <Switch
-                edge="end"
-                checked={feed.enabled}
-                onChange={() => onToggleFeed(feed.id)}
-                inputProps={{ 'aria-label': 'toggle feed' }}
-              />
-              <IconButton 
-                edge="end" 
-                aria-label="edit"
-                onClick={() => handleEditClick(feed)}
-                sx={{ ml: 1 }}
-              >
-                <EditIcon />
-              </IconButton>
-              <IconButton 
-                edge="end" 
-                aria-label="delete"
-                onClick={() => onDeleteFeed(feed.id)}
-                sx={{ ml: 1 }}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </ListItemSecondaryAction>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="url">フィードURL</Label>
+                <Input
+                  id="url"
+                  placeholder="RSSフィードのURLを入力"
+                  value={newFeed.url}
+                  onChange={(e) => setNewFeed({ ...newFeed, url: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>デフォルト画像</Label>
+                <Select
+                  value={newFeed.defaultImage}
+                  onValueChange={(value) => setNewFeed({ ...newFeed, defaultImage: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="画像を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">なし</SelectItem>
+                    {Object.entries(DEFAULT_IMAGES).map(([name, path]) => (
+                      <SelectItem key={name} value={path}>
+                        <div className="flex items-center gap-2">
+                          <img src={path} alt={name} className="w-6 h-6" />
+                          <span>{name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end space-x-2">
+                {editingFeed ? (
+                  <>
+                    <Button
+                      onClick={handleSaveEdit}
+                      disabled={!newFeed.name || !newFeed.url}
+                      className="flex-1"
+                    >
+                      保存
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      className="flex-1"
+                    >
+                      キャンセル
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={handleAddNewFeed}
+                    disabled={!newFeed.name || !newFeed.url}
+                    className="w-full"
+                  >
+                    追加
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>フィード</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead className="w-[100px]">有効/無効</TableHead>
+                  <TableHead className="w-[100px]">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {feeds.map((feed) => (
+                  <TableRow key={feed.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {feed.default_image && (
+                          <img
+                            src={feed.default_image}
+                            alt={feed.name}
+                            className="w-6 h-6"
+                          />
+                        )}
+                        <span>{feed.name || '名称未設定'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {feed.url}
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={feed.enabled}
+                        onCheckedChange={() => onToggleFeed(feed.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(feed)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDeleteFeed(feed.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 
