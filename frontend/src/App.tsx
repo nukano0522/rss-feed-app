@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { Login } from './components/Login';
 import RssFeedReader from './components/RssFeedReader';
 import { Container, CssBaseline } from '@mui/material';
+import { LoginForm } from './components/LoginForm';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 // メインのアプリケーションコンポーネント
 const AppContent: React.FC = () => {
   return (
+    
     <Container>
       <CssBaseline />
       <Routes>
@@ -36,7 +38,9 @@ const AppContent: React.FC = () => {
           }
         />
       </Routes>
+      <LoginForm />
     </Container>
+    
   );
 };
 
