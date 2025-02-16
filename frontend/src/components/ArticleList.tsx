@@ -101,6 +101,13 @@ const ArticleList: React.FC<ArticleListProps> = ({
   const [selectedFeeds, setSelectedFeeds] = useState<string[]>([]);
   const [readFilter, setReadFilter] = useState<'all' | 'read' | 'unread'>('all');
 
+  const feedImageMap = useMemo(() => {
+    return feeds.reduce((acc, feed) => {
+      acc[feed.url] = feed.default_image;
+      return acc;
+    }, {} as Record<string, string | null>);
+  }, [feeds]);
+
   const filteredArticles = useMemo(() => {
     return articles.filter(article => {
       if (selectedFeeds.length > 0) {
@@ -165,7 +172,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
             <div className="relative cursor-pointer flex h-full" onClick={() => handleArticleClick(article.link)}>
               <div className="w-[120px] h-full relative flex-shrink-0">
                 <img
-                  src={article.image || '/default-image.jpg'}
+                  src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
                   alt={article.title}
                   className="object-cover w-full h-full"
                 />

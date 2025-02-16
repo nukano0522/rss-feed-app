@@ -1,20 +1,9 @@
 import React from 'react';
-import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  Divider,
-  Box,
-} from '@mui/material';
-import RssFeedIcon from '@mui/icons-material/RssFeed';
-import ArticleIcon from '@mui/icons-material/Article';
-import LogoutIcon from '@mui/icons-material/Logout';
-import StarIcon from '@mui/icons-material/Star';
 import { useAuth } from '../hooks/useAuth';
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { Rss, FileText, Star, LogOut } from "lucide-react"
 
 type MenuType = 'feeds' | 'articles' | 'favorites';
 
@@ -22,8 +11,6 @@ interface NavigationProps {
   selectedMenu: MenuType;
   onMenuSelect: (menu: MenuType) => void;
 }
-
-const drawerWidth = 240;
 
 const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) => {
   const { logout } = useAuth();
@@ -37,77 +24,53 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
   };
 
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-        },
-      }}
-    >
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        height: '100%'
-      }}>
-        <Box sx={{ p: 2 }}>
-          <Typography variant="h6" sx={{ pb: 2 }}>
-            RSSリーダー
-          </Typography>
-        </Box>
-        <Divider />
-        <List>
-          <ListItem disablePadding>
-            <ListItemButton
+    <div className="w-[240px] border-r h-screen">
+      <div className="flex flex-col h-full">
+        <div className="p-6">
+          <h2 className="text-lg font-semibold">RSSリーダー</h2>
+        </div>
+        <Separator />
+        <ScrollArea className="flex-1">
+          <div className="p-4">
+            <Button
+              variant={selectedMenu === 'feeds' ? 'secondary' : 'ghost'}
+              className="w-full justify-start gap-2 mb-2"
               onClick={() => onMenuSelect('feeds')}
-              selected={selectedMenu === 'feeds'}
             >
-              <ListItemIcon>
-                <RssFeedIcon />
-              </ListItemIcon>
-              <ListItemText primary="フィード管理" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton
+              <Rss className="h-4 w-4" />
+              フィード管理
+            </Button>
+            <Button
+              variant={selectedMenu === 'articles' ? 'secondary' : 'ghost'}
+              className="w-full justify-start gap-2 mb-2"
               onClick={() => onMenuSelect('articles')}
-              selected={selectedMenu === 'articles'}
             >
-              <ListItemIcon>
-                <ArticleIcon />
-              </ListItemIcon>
-              <ListItemText primary="記事一覧" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton
+              <FileText className="h-4 w-4" />
+              記事一覧
+            </Button>
+            <Button
+              variant={selectedMenu === 'favorites' ? 'secondary' : 'ghost'}
+              className="w-full justify-start gap-2"
               onClick={() => onMenuSelect('favorites')}
-              selected={selectedMenu === 'favorites'}
             >
-              <ListItemIcon>
-                <StarIcon />
-              </ListItemIcon>
-              <ListItemText primary="お気に入り" />
-            </ListItemButton>
-          </ListItem>
-        </List>
-        <Box sx={{ flexGrow: 1 }} /> {/* スペーサー */}
-        <Divider />
-        <List>
-          <ListItem disablePadding>
-            <ListItemButton onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon />
-              </ListItemIcon>
-              <ListItemText primary="ログアウト" />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Box>
-    </Drawer>
+              <Star className="h-4 w-4" />
+              お気に入り
+            </Button>
+          </div>
+        </ScrollArea>
+        <Separator />
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            ログアウト
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Box, CssBaseline } from '@mui/material';
 import FeedManager from './FeedManager';
 import ArticleList from './ArticleList';
 import Navigation from './Navigation';
@@ -33,13 +32,12 @@ const RssFeedReader: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
+    <div className="flex min-h-screen bg-background">
       <Navigation 
         selectedMenu={selectedMenu} 
         onMenuSelect={handleMenuSelect}
       />
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <main className="flex-1 p-6">
         {selectedMenu === 'feeds' ? (
           <FeedManager 
             feeds={feeds}
@@ -69,8 +67,8 @@ const RssFeedReader: React.FC = () => {
             onToggleFavorite={toggleFavorite}
           />
         )}
-      </Box>
-    </Box>
+      </main>
+    </div>
   );
 };
 

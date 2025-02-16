@@ -32,6 +32,8 @@ const DEFAULT_IMAGES: Record<string, string> = {
   'azure_blog.svg': '/default-images/Microsoft_Azure.svg',
   'aws_blog.svg': '/default-images/Amazon_Web_Services_Logo.svg',
   'hatena_bookmark.svg': '/default-images/hatenabookmark_symbolmark.png',
+  'nikkei_digital.jpeg': '/default-images/nikkei_digital.jpeg',
+  'arxiv-logo.svg': '/default-images/arxiv-logo.svg',
 };
 
 interface FeedManagerProps {
