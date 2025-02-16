@@ -1,9 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import { Login } from './components/Login';
 import RssFeedReader from './components/RssFeedReader';
-import { Container, CssBaseline } from '@mui/material';
 import { LoginForm } from './components/LoginForm';
 
 interface ProtectedRouteProps {
@@ -24,11 +22,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 // メインのアプリケーションコンポーネント
 const AppContent: React.FC = () => {
   return (
-    
-    <Container>
-      <CssBaseline />
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LoginForm />} />
         <Route
           path="/"
           element={
@@ -38,9 +33,6 @@ const AppContent: React.FC = () => {
           }
         />
       </Routes>
-      <LoginForm />
-    </Container>
-    
   );
 };
 
