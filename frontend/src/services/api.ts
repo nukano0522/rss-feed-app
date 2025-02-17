@@ -54,8 +54,12 @@ export const feedsApi = {
     article_image: article.image || '',
     article_categories: article.categories || [],
     feed_id: article.feed_id
-  } as FavoriteArticleRequest),
+    } as FavoriteArticleRequest),
   removeFavoriteArticle: (articleLink: string) => api.delete(`/feeds/favorite-articles/${btoa(articleLink)}`),
+  summarizeArticle: (article: Article, feedId: number) => api.post('/feeds/articles/summarize', {
+    article_link: article.link,
+    feed_id: feedId
+  }),
 };
 
 export default api; 

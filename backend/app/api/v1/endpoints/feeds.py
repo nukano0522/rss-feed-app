@@ -283,16 +283,17 @@ async def check_favorite_articles(
     return [row[0] for row in result.all()]
 
 
-@router.post("/articles/summarize", response_model=schemas.ArticleSummary)
+@router.post("/articles/summarize", response_model=schemas.AiSummary)
 async def summarize_article(
-    article_link: str,
+    article: schemas.AiSummaryCreate,
     lang: str = Query("ja", description="要約の言語（ja/en）"),
     session: AsyncSession = Depends(get_async_session),
 ):
     # 既存の要約をチェック
     existing_summary = await session.execute(
-        select(models.ArticleSummary).where(
-            models.ArticleSummary.article_link == article_link
+        select(models.AiSummary).where(
+            models.AiSummary.feed_id == article.feed_id,
+            models.AiSummary.article_link == article.article_link,
         )
     )
     summary = existing_summary.scalar_one_or_none()
@@ -302,21 +303,26 @@ async def summarize_article(
     try:
         # 記事本文の取得
         async with aiohttp.ClientSession() as client:
-            async with client.get(article_link) as response:
+            async with client.get(article.article_link) as response:
                 html = await response.text()
 
         # HTMLから本文を抽出
-        article_text = content_extractor.extract_main_content(html, article_link)
+        article_text = content_extractor.extract_main_content(
+            html, article.article_link
+        )
 
         # GPTによる要約生成
         summary_text = await summarizer.summarize(article_text, lang)
 
         # 要約をDBに保存
-        new_summary = models.ArticleSummary(
-            article_link=article_link, summary=summary_text
+        new_summary = models.AiSummary(
+            feed_id=article.feed_id,
+            article_link=article.article_link,
+            summary=summary_text,
         )
         session.add(new_summary)
         await session.commit()
+        await session.refresh(new_summary)
 
         return new_summary
 

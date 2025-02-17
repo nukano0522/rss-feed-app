@@ -68,18 +68,19 @@ class FavoriteArticle(FavoriteArticleBase):
         from_attributes = True
 
 
-class ArticleSummaryBase(BaseModel):
+class AiSummaryBase(BaseModel):
+    feed_id: int
     article_link: str
-    summary: str
 
 
-class ArticleSummaryCreate(ArticleSummaryBase):
+class AiSummaryCreate(AiSummaryBase):
     pass
 
 
-class ArticleSummary(ArticleSummaryBase):
+class AiSummary(AiSummaryBase):
     id: int
     created_at: datetime
+    summary: str
 
     class Config:
         from_attributes = True
