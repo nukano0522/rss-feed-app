@@ -12,7 +12,12 @@ export default defineConfig({
         target: 'http://backend:8000',
         changeOrigin: true,
       }
-    }
+    },
+    allowedHosts: [
+      'localhost',
+      '*.amazonaws.com',
+      '*.elb.amazonaws.com'
+    ]
   },
   resolve: {
     alias: {

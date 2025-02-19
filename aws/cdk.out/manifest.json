@@ -1,0 +1,284 @@
+{
+  "version": "36.0.0",
+  "artifacts": {
+    "RssFeedAppStack.assets": {
+      "type": "cdk:asset-manifest",
+      "properties": {
+        "file": "RssFeedAppStack.assets.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+      }
+    },
+    "RssFeedAppStack": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://unknown-account/ap-northeast-1",
+      "properties": {
+        "templateFile": "RssFeedAppStack.template.json",
+        "terminationProtection": false,
+        "validateOnSynth": false,
+        "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-ap-northeast-1",
+        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-ap-northeast-1",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-ap-northeast-1/77191d7feea2b6b5475837fda850789d54c96a89833c0803450eac694415b9d5.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
+        "additionalDependencies": [
+          "RssFeedAppStack.assets"
+        ],
+        "lookupRole": {
+          "arn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-lookup-role-${AWS::AccountId}-ap-northeast-1",
+          "requiresBootstrapStackVersion": 8,
+          "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+        }
+      },
+      "dependencies": [
+        "RssFeedAppStack.assets"
+      ],
+      "metadata": {
+        "/RssFeedAppStack/RssFeedVPC/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCE97858D3"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet1/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet1SubnetDD08EED3"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet1/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet1RouteTableED6D0696"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet1/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet1RouteTableAssociation836C21B9"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet1/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet1DefaultRouteF200E098"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet1/EIP": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet1EIP175B0C3D"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet1/NATGateway": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet1NATGatewayA2CF1A73"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet2/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet2SubnetC04AD72E"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet2/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet2RouteTable86621A52"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet2/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet2RouteTableAssociationBEBBD511"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PublicSubnet2/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPublicSubnet2DefaultRoute747DA275"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet1/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet1SubnetE038C3CE"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet1/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet1RouteTable47B51338"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet1/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet1RouteTableAssociation9FD853CB"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet1/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet1DefaultRouteC26860B3"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet2/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet2Subnet128DAD5C"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet2/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet2RouteTable7E3E0A80"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet2/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet2RouteTableAssociation571E5FC6"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/PrivateSubnet2/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCPrivateSubnet2DefaultRoute3F866085"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/IGW": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCIGW754497EE"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedVPC/VPCGW": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedVPCVPCGW768A98D8"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedSecurityGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedSecurityGroupD32A537E"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedInstance/InstanceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedInstanceInstanceRole5B0BCF38"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedInstance/InstanceProfile": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedInstanceInstanceProfile2E6D9BDC"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedInstance/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedInstance2B6E3B25"
+          }
+        ],
+        "/RssFeedAppStack/SsmParameterValue:--aws--service--ami-amazon-linux-latest--amzn2-ami-hvm-x86_64-gp2:C96584B6-F00A-464E-AD19-53AFF4B05118.Parameter": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedALB/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedALB5A16BFB4"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedALB/Listener": [
+          {
+            "type": "aws:cdk:warning",
+            "data": "A default Action already existed on this Listener and was replaced. Configure exactly one default Action. [ack: @aws-cdk/aws-elbv2:listenerExistingDefaultActionReplaced]",
+            "trace": [
+              "Annotations.addMessage (C:\\Users\\nukan\\AppData\\Local\\Temp\\jsii-kernel-KZE5u0\\node_modules\\aws-cdk-lib\\core\\lib\\annotations.js:1:1608)",
+              "Annotations.addWarningV2 (C:\\Users\\nukan\\AppData\\Local\\Temp\\jsii-kernel-KZE5u0\\node_modules\\aws-cdk-lib\\core\\lib\\annotations.js:1:825)",
+              "ApplicationListener._setDefaultAction (C:\\Users\\nukan\\AppData\\Local\\Temp\\jsii-kernel-KZE5u0\\node_modules\\aws-cdk-lib\\aws-elasticloadbalancingv2\\lib\\shared\\base-listener.js:1:2249)",
+              "ApplicationListener.setDefaultAction (C:\\Users\\nukan\\AppData\\Local\\Temp\\jsii-kernel-KZE5u0\\node_modules\\aws-cdk-lib\\aws-elasticloadbalancingv2\\lib\\alb\\application-listener.js:1:9144)",
+              "ApplicationListener.addTargetGroups (C:\\Users\\nukan\\AppData\\Local\\Temp\\jsii-kernel-KZE5u0\\node_modules\\aws-cdk-lib\\aws-elasticloadbalancingv2\\lib\\alb\\application-listener.js:1:6032)",
+              "ApplicationListener.addTargets (C:\\Users\\nukan\\AppData\\Local\\Temp\\jsii-kernel-KZE5u0\\node_modules\\aws-cdk-lib\\aws-elasticloadbalancingv2\\lib\\alb\\application-listener.js:1:6730)",
+              "C:\\Users\\nukan\\AppData\\Local\\Temp\\tmptx65lq4b\\lib\\program.js:8874:172",
+              "Kernel._Kernel_ensureSync (C:\\Users\\nukan\\AppData\\Local\\Temp\\tmptx65lq4b\\lib\\program.js:9500:24)",
+              "Kernel.invoke (C:\\Users\\nukan\\AppData\\Local\\Temp\\tmptx65lq4b\\lib\\program.js:8874:102)",
+              "KernelHost.processRequest (C:\\Users\\nukan\\AppData\\Local\\Temp\\tmptx65lq4b\\lib\\program.js:10718:36)",
+              "KernelHost.run (C:\\Users\\nukan\\AppData\\Local\\Temp\\tmptx65lq4b\\lib\\program.js:10678:22)",
+              "Immediate._onImmediate (C:\\Users\\nukan\\AppData\\Local\\Temp\\tmptx65lq4b\\lib\\program.js:10679:46)",
+              "process.processImmediate (node:internal/timers:483:21)"
+            ]
+          }
+        ],
+        "/RssFeedAppStack/RssFeedALB/Listener/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedALBListener52D240AA"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedALB/Listener/FrontendTargetGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedALBListenerFrontendTargetGroup41172234"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedALB/Listener/BackendTargetGroup/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedALBListenerBackendTargetGroup254CE19D"
+          }
+        ],
+        "/RssFeedAppStack/RssFeedALB/Listener/BackendTargetRule/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "RssFeedALBListenerBackendTargetRuleA04AB179"
+          }
+        ],
+        "/RssFeedAppStack/InstancePublicIP": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "InstancePublicIP"
+          }
+        ],
+        "/RssFeedAppStack/LoadBalancerDNS": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "LoadBalancerDNS"
+          }
+        ],
+        "/RssFeedAppStack/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/RssFeedAppStack/BootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BootstrapVersion"
+          }
+        ],
+        "/RssFeedAppStack/CheckBootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CheckBootstrapVersion"
+          }
+        ]
+      },
+      "displayName": "RssFeedAppStack"
+    },
+    "Tree": {
+      "type": "cdk:tree",
+      "properties": {
+        "file": "tree.json"
+      }
+    }
+  }
+}
