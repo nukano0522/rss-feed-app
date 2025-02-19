@@ -16,7 +16,10 @@ app = FastAPI()
 # CORSミドルウェアの設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # フロントエンドのオリジン
+    allow_origins=[
+        "http://localhost:3000",  # 開発環境
+        "http://rssfee-rssfe-uf6brkcl43tr-2147301523.ap-northeast-1.elb.amazonaws.com",  # 本番環境
+    ],
     allow_credentials=True,  # Cookie送信を許可
     allow_methods=["*"],
     allow_headers=["*"],

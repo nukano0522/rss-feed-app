@@ -19,7 +19,7 @@ class Feed(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    url = Column(String(2083), nullable=False)
+    url = Column(String(512), nullable=False)
     enabled = Column(Boolean, default=True)
     default_image = Column(String(2083), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -30,7 +30,7 @@ class ReadArticle(Base):
     __tablename__ = "read_articles"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    article_link = Column(String(2083), nullable=False)
+    article_link = Column(String(512), nullable=False)
     read_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
 
@@ -58,7 +58,7 @@ class AiSummary(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=False)
-    article_link = Column(String(2083), nullable=False)
+    article_link = Column(String(512), nullable=False)
     summary = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

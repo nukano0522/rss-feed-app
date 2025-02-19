@@ -15,8 +15,7 @@ export default defineConfig({
     },
     allowedHosts: [
       'localhost',
-      '*.amazonaws.com',
-      '*.elb.amazonaws.com'
+      'rssfee-rssfe-uf6brkcl43tr-2147301523.ap-northeast-1.elb.amazonaws.com'
     ]
   },
   resolve: {
