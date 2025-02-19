@@ -8,9 +8,10 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     proxy: {
-      '/api': {
+      '/api/v1': {
         target: 'http://backend:8000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1')
       }
     },
     allowedHosts: [

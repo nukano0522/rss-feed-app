@@ -3,6 +3,7 @@ import config from '../config';
 import { Feed, Article, RssFeedResponse, FavoriteArticleRequest } from '../types';
 const api = axios.create({
   baseURL: config.apiUrl,
+  // baseURL: '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
