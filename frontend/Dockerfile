@@ -12,6 +12,7 @@ RUN npm config set fetch-retry-maxtimeout 600000 \
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
+<<<<<<< Updated upstream
 # # node_modulesをクリーンアップして再インストール
 # RUN rm -rf node_modules \
 #     && npm cache clean --force \
@@ -20,6 +21,12 @@ COPY package*.json ./
 RUN rm -rf node_modules && \
     npm cache clean --force && \
     npm install
+=======
+# node_modulesをクリーンアップして再インストール
+RUN rm -rf node_modules \
+    && npm cache clean --force \
+    && npm ci --include=dev
+>>>>>>> Stashed changes
 
 # ソースコードをコピー
 COPY . .

@@ -3,3 +3,5 @@
 .vite/
 **/.venv
 **/*.pem
+**/__pycache__
+**/cdk.out

@@ -21,7 +21,21 @@ class RssFeedStack(Stack):
             nat_gateways=1,
         )
 
-        # セキュリティグループの作成
+        # ALB用の専用セキュリティグループの作成
+        alb_security_group = ec2.SecurityGroup(
+            self,
+            "ALBSecurityGroup",
+            vpc=vpc,
+            description="Security group for ALB",
+            allow_all_outbound=True,
+        )
+
+        # ALBのセキュリティグループには80番ポートのみ許可
+        alb_security_group.add_ingress_rule(
+            ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP access from internet"
+        )
+
+        # EC2のセキュリティグループを修正
         security_group = ec2.SecurityGroup(
             self,
             "RssFeedSecurityGroup",
@@ -35,13 +49,14 @@ class RssFeedStack(Stack):
             ec2.Peer.any_ipv4(), ec2.Port.tcp(22), "Allow SSH access"
         )
         security_group.add_ingress_rule(
-            ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP access"
+            ec2.Peer.security_group_id(alb_security_group.security_group_id),
+            ec2.Port.tcp(3000),
+            "Allow Frontend access from ALB",
         )
         security_group.add_ingress_rule(
-            ec2.Peer.any_ipv4(), ec2.Port.tcp(3000), "Allow Frontend access"
-        )
-        security_group.add_ingress_rule(
-            ec2.Peer.any_ipv4(), ec2.Port.tcp(8000), "Allow Backend access"
+            ec2.Peer.security_group_id(alb_security_group.security_group_id),
+            ec2.Port.tcp(8000),
+            "Allow Backend access from ALB",
         )
 
         # EC2インスタンスの作成
@@ -81,6 +96,13 @@ class RssFeedStack(Stack):
             "chmod +x /usr/local/lib/docker/cli-plugins/docker-compose",
             # git clone および npm install の実行（例: ec2-user のホームディレクトリ直下にクローン）
             "sudo -i -u ec2-user bash -c 'cd ~ && git clone https://github.com/nukano0522/rss-feed-app && cd rss-feed-app/frontend && npm install'",
+            # ALBのDNS名を環境変数ファイルに書き込む
+            # f'echo "VITE_API_URL=http://{alb.load_balancer_dns_name}/api" > /home/ec2-user/rss-feed-app/frontend/.env',
+            # # フロントエンドの再ビルド
+            # "cd /home/ec2-user/YOUR_REPOSITORY_NAME/frontend",
+            # "npm run build",
+            # # 権限の設定
+            # "chown -R ec2-user:ec2-user /home/ec2-user",
         )
 
         # Application Load Balancerの作成
@@ -89,7 +111,7 @@ class RssFeedStack(Stack):
             "RssFeedALB",
             vpc=vpc,
             internet_facing=True,
-            security_group=security_group,
+            security_group=alb_security_group,  # 専用のセキュリティグループを使用
         )
 
         # リスナーとターゲットグループの作成
