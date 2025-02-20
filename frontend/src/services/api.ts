@@ -7,12 +7,14 @@ if (import.meta.env.DEV) {
   debugEnvironment();
 }
 
-// baseURLの構築
-  const baseURL = import.meta.env.VITE_BASE_URL 
-    ? `${import.meta.env.VITE_BASE_URL}${import.meta.env.VITE_API_URL}` 
-    : import.meta.env.VITE_API_URL;
+let baseURL: string;
+if (import.meta.env.DEV) {
+  baseURL = 'http://localhost:8000/api/v1';
+} else {
+  baseURL = import.meta.env.VITE_API_URL;
+}
 //検証用
-// const baseURL = 'http://localhost:8000/api/v2';
+// const baseURL = 'http://localhost:8000/api/v1';
 
 console.log('API baseURL:', baseURL);
 
