@@ -57,3 +57,33 @@ graph TD
     class API api
     class DB database
 ```
+
+# ルーティング
+## 開発環境
+```mermaid
+graph LR
+    Browser[ブラウザ]
+    ViteServer[Viteサーバー\nport:3000]
+    Backend[バックエンド\nport:8000]
+    
+    Browser -->|1./api/v1/feeds| ViteServer
+    ViteServer -->|2.プロキシ転送backend:8000/api/v1/feeds| Backend
+    Backend -->|3.レスポンス| ViteServer
+    ViteServer -->|4.レスポンス| Browser
+```
+## 本番環境
+```mermaid
+graph LR
+    Browser[ブラウザ]
+    Nginx[Nginx\nport:3000]
+    Backend[バックエンド\nport:8000]
+    
+    Browser -->|1.静的ファイル要求\n/index.html| Nginx
+    Browser -->|2.API要求\n/api/v1/feeds| Nginx
+    Nginx -->|3.静的ファイル応答\n/usr/share/nginx/html| Browser
+    Nginx -->|4.プロキシ転送backend:8000/api/v1/feeds| Backend
+    Backend -->|5.レスポンス| Nginx
+    Nginx -->|6.レスポンス| Browser
+```
+
+

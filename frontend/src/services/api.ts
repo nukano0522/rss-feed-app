@@ -1,15 +1,18 @@
 import axios from 'axios';
-import config from '../config';
 import { Feed, Article, RssFeedResponse, FavoriteArticleRequest } from '../types';
 import { debugEnvironment } from '../utils/debug';
 
-// デバッグ情報を表示
-debugEnvironment();
+// 開発環境の場合デバッグ情報を表示
+if (import.meta.env.DEV) {
+  debugEnvironment();
+}
 
 // baseURLの構築
-const baseURL = import.meta.env.VITE_BASE_URL 
-  ? `${import.meta.env.VITE_BASE_URL}${import.meta.env.VITE_API_URL}` 
-  : import.meta.env.VITE_API_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL 
+    ? `${import.meta.env.VITE_BASE_URL}${import.meta.env.VITE_API_URL}` 
+    : import.meta.env.VITE_API_URL;
+//検証用
+// const baseURL = 'http://localhost:8000/api/v2';
 
 console.log('API baseURL:', baseURL);
 
