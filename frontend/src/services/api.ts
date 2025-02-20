@@ -1,18 +1,25 @@
 import axios from 'axios';
 import config from '../config';
 import { Feed, Article, RssFeedResponse, FavoriteArticleRequest } from '../types';
+import { debugEnvironment } from '../utils/debug';
+
+// デバッグ情報を表示
+debugEnvironment();
+
+// baseURLの構築
+const baseURL = import.meta.env.VITE_BASE_URL 
+  ? `${import.meta.env.VITE_BASE_URL}${import.meta.env.VITE_API_URL}` 
+  : import.meta.env.VITE_API_URL;
+
+console.log('API baseURL:', baseURL);
+
 const api = axios.create({
-  baseURL: config.apiUrl,
-  // baseURL: '/api/v1',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
 });
-
-interface ApiResponse<T> {
-  data: T;
-}
 
 api.interceptors.request.use(
   (config) => {

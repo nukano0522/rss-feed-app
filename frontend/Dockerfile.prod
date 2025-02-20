@@ -1,5 +1,5 @@
-# Node.jsの公式イメージをベースとして使用
-FROM node:20-slim
+# ビルドステージ
+FROM node:20-slim as builder
 
 # 作業ディレクトリを設定
 WORKDIR /app
@@ -24,15 +24,19 @@ RUN rm -rf node_modules && \
 # ソースコードをコピー
 COPY . .
 
-# 開発サーバーのポートを開放
+# 本番用ビルドの実行
+RUN npm run build:prod
+
+# 実行ステージ
+FROM nginx:alpine
+
+# ビルドしたファイルをnginxのドキュメントルートにコピー
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Nginxの設定ファイルをコピー（必要に応じて）
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 3000
 
-# Viteの開発サーバーをホストから接続できるように設定
-ENV VITE_PORT=3000
-ENV VITE_HOST=0.0.0.0
-
-# 開発サーバー起動
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
-# ホットリロードのためのボリュームマウント用に作業ディレクトリを指定
-VOLUME ["/app/src", "/app/public"] 
+# Nginxを起動
+CMD ["nginx", "-g", "daemon off;"] 
