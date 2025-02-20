@@ -61,15 +61,19 @@ graph TD
 # ルーティング
 ## 開発環境
 ```mermaid
-graph LR
-    Browser[ブラウザ]
-    ViteServer[Viteサーバー\nport:3000]
-    Backend[バックエンド\nport:8000]
-    
-    Browser -->|1./api/v1/feeds| ViteServer
-    ViteServer -->|2.プロキシ転送backend:8000/api/v1/feeds| Backend
-    Backend -->|3.レスポンス| ViteServer
-    ViteServer -->|4.レスポンス| Browser
+sequenceDiagram
+  participant B as Browser
+  participant V as Vite Dev Server
+  participant P as Proxy Middleware
+  participant BE as Backend API
+
+  B->>V: GET /api/v1/hoge
+  V->>P: リクエストパスのチェック (/api/v1にマッチ)
+  P->>P: rewrite関数実行<br>(例: path.replace(/^\/api\/v1/, '/api/v1'))
+  P->>BE: 書き換え後のリクエストを転送<br>(http://backend:8000/api/v1/hoge)
+  BE-->>P: APIレスポンス
+  P-->>V: レスポンス転送
+  V-->>B: ブラウザへレスポンス返却
 ```
 ## 本番環境
 ```mermaid
