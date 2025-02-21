@@ -7,6 +7,7 @@ from aws_cdk import (
     aws_route53 as route53,
     aws_route53_targets as targets,
     CfnOutput,
+    Duration,
 )
 from aws_cdk.aws_elasticloadbalancingv2_targets import InstanceTarget  # 追加
 from constructs import Construct
@@ -91,19 +92,29 @@ class RssFeedStack(Stack):
         instance.user_data.add_commands(
             # システム更新および基本パッケージのインストール
             "yum update -y",
-            "yum install -y docker git",
+            "yum install -y docker git openssl",
             "systemctl start docker",
             "systemctl enable docker",
             "usermod -a -G docker ec2-user",
-            # Node.js のセットアップ（例: Node.js 18.x のインストール）
+            # Node.js のセットアップ
             "curl -sL https://rpm.nodesource.com/setup_18.x | bash -",
             "yum install -y nodejs",
             # docker-compose v2 のセットアップ
             "mkdir -p /usr/local/lib/docker/cli-plugins/",
             "curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose",
             "chmod +x /usr/local/lib/docker/cli-plugins/docker-compose",
-            # git clone および npm install の実行（例: ec2-user のホームディレクトリ直下にクローン）
+            # SSL証明書の生成
+            "mkdir -p /home/ec2-user/rss-feed-app/ssl",
+            "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /home/ec2-user/rss-feed-app/ssl/key.pem -out /home/ec2-user/rss-feed-app/ssl/cert.pem -subj '/CN=localhost'",
+            # git clone および npm install の実行
             "sudo -i -u ec2-user bash -c 'cd ~ && git clone https://github.com/nukano0522/rss-feed-app && cd rss-feed-app/frontend && npm install'",
+            # フロントエンドの環境変数設定とビルド
+            'echo "VITE_API_URL=/api/v1" > /home/ec2-user/rss-feed-app/frontend/.env',
+            "cd /home/ec2-user/rss-feed-app/frontend && npm run build",
+            # アプリケーションの起動
+            "cd /home/ec2-user/rss-feed-app && docker-compose up -d",
+            # 権限の設定
+            "chown -R ec2-user:ec2-user /home/ec2-user",
         )
 
         # Route 53 ホストゾーンの参照（既存のホストゾーンを使用する場合）
@@ -140,6 +151,20 @@ class RssFeedStack(Stack):
             record_name="app",
         )
 
+        # HTTPリスナーの作成（HTTPSへのリダイレクト）
+        http_listener = alb.add_listener(
+            "HttpListener",
+            port=80,
+            default_action=elbv2.ListenerAction.redirect(
+                protocol="HTTPS",
+                port="443",
+                host="#{host}",
+                path="/#{path}",
+                query="#{query}",
+                permanent=True,
+            ),
+        )
+
         # HTTPSリスナーの作成
         https_listener = alb.add_listener(
             "HttpsListener",
@@ -148,15 +173,6 @@ class RssFeedStack(Stack):
             ssl_policy=elbv2.SslPolicy.RECOMMENDED,
             default_action=elbv2.ListenerAction.fixed_response(
                 status_code=404, content_type="text/plain", message_body="Not Found"
-            ),
-        )
-
-        # HTTPリスナーの作成（HTTPSへのリダイレクト）
-        http_listener = alb.add_listener(
-            "HttpListener",
-            port=80,
-            default_action=elbv2.ListenerAction.redirect(
-                protocol="HTTPS", port="443", permanent=True
             ),
         )
 
@@ -176,11 +192,16 @@ class RssFeedStack(Stack):
         backend_target_group = https_listener.add_targets(
             "BackendTarget",
             port=8000,
-            protocol=elbv2.ApplicationProtocol.HTTP,
+            protocol=elbv2.ApplicationProtocol.HTTPS,
             targets=[InstanceTarget(instance)],
             health_check=elbv2.HealthCheck(
-                path="/docs",
+                path="/api/v1/docs",  # FastAPIのSwagger UIパス
                 healthy_http_codes="200",
+                interval=Duration.seconds(30),
+                timeout=Duration.seconds(5),
+                healthy_threshold_count=2,
+                unhealthy_threshold_count=2,
+                protocol=elbv2.Protocol.HTTPS,
             ),
             priority=1,
             conditions=[elbv2.ListenerCondition.path_patterns(["/api/*"])],

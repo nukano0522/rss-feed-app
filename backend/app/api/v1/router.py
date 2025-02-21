@@ -5,6 +5,13 @@ from app.schemas.user import UserRead, UserCreate, UserUpdate
 
 api_router = APIRouter()
 
+
+# ヘルスチェックエンドポイント
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
+
 # 認証関連のルーターを直接設定
 api_router.include_router(
     fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]

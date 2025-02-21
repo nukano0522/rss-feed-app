@@ -5,14 +5,9 @@ import { debugEnvironment } from '../utils/debug';
 let baseURL: string;
 if (import.meta.env.DEV) {
   debugEnvironment();
-  // bsseUrlとapiUrlを結合
-  baseURL = import.meta.env.VITE_BASE_URL + import.meta.env.VITE_API_URL;
-} else {
-  baseURL = import.meta.env.VITE_API_URL;
-}
-
-if (import.meta.env.DEV) {
   baseURL = 'http://localhost:8000/api/v1';
+} else {
+  baseURL = `/api/v1`;
 }
 
 console.log('API baseURL:', baseURL);

@@ -46,14 +46,18 @@ services:
     environment:
       - DATABASE_URL=mysql://user:password@db:3306/rss_reader
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SSL_KEYFILE=/app/ssl/key.pem
+      - SSL_CERTFILE=/app/ssl/cert.pem
     volumes:
       - ./backend:/app
+      - ./ssl:/app/ssl  # SSL証明書のマウント
       - /app/__pycache__
     depends_on:
       db:
         condition: service_healthy
     networks:
       - app-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --ssl-keyfile /app/ssl/key.pem --ssl-certfile /app/ssl/cert.pem
 
   db:
     image: mysql:8.0
