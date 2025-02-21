@@ -1,3 +1,4 @@
+## ネットワーク構成
 ```mermaid
 graph TB
     subgraph VPC[RssFeed VPC - 10.0.0.0/16]
@@ -39,4 +40,23 @@ graph TB
     SG -->|Allow| SSH:22
     SG -->|Allow| Frontend:3000
     SG -->|Allow| Backend:8000
+```
+
+## ターゲティング
+
+```mermaid
+
+graph LR
+    Client[クライアント]
+    ALB[Application Load Balancer]
+    TG[ターゲットグループ]
+    EC2_1[EC2 インスタンス 1]
+    EC2_2[EC2 インスタンス 2]
+    EC2_3[EC2 インスタンス 3]
+
+    Client -->|リクエスト| ALB
+    ALB -->|振り分け| TG
+    TG -->|転送| EC2_1
+    TG -->|転送| EC2_2
+    TG -->|転送| EC2_3
 ```

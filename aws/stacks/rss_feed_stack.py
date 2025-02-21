@@ -3,6 +3,9 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_elasticloadbalancingv2 as elbv2,
     aws_iam as iam,
+    aws_certificatemanager as acm,
+    aws_route53 as route53,
+    aws_route53_targets as targets,
     CfnOutput,
 )
 from aws_cdk.aws_elasticloadbalancingv2_targets import InstanceTarget  # 追加
@@ -33,6 +36,9 @@ class RssFeedStack(Stack):
         # ALBのセキュリティグループには80番ポートのみ許可
         alb_security_group.add_ingress_rule(
             ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP access from internet"
+        )
+        alb_security_group.add_ingress_rule(
+            ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "Allow HTTPS access from internet"
         )
 
         # EC2のセキュリティグループを修正
@@ -65,7 +71,9 @@ class RssFeedStack(Stack):
             "RssFeedInstance",
             vpc=vpc,
             instance_type=ec2.InstanceType.of(
-                ec2.InstanceClass.T2, ec2.InstanceSize.MEDIUM
+                # ec2.InstanceClass.T2, ec2.InstanceSize.MEDIUM
+                ec2.InstanceClass.T3,
+                ec2.InstanceSize.SMALL,
             ),
             machine_image=ec2.AmazonLinuxImage(
                 generation=ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
@@ -96,13 +104,22 @@ class RssFeedStack(Stack):
             "chmod +x /usr/local/lib/docker/cli-plugins/docker-compose",
             # git clone および npm install の実行（例: ec2-user のホームディレクトリ直下にクローン）
             "sudo -i -u ec2-user bash -c 'cd ~ && git clone https://github.com/nukano0522/rss-feed-app && cd rss-feed-app/frontend && npm install'",
-            # ALBのDNS名を環境変数ファイルに書き込む
-            # f'echo "VITE_API_URL=http://{alb.load_balancer_dns_name}/api" > /home/ec2-user/rss-feed-app/frontend/.env',
-            # # フロントエンドの再ビルド
-            # "cd /home/ec2-user/YOUR_REPOSITORY_NAME/frontend",
-            # "npm run build",
-            # # 権限の設定
-            # "chown -R ec2-user:ec2-user /home/ec2-user",
+        )
+
+        # Route 53 ホストゾーンの参照（既存のホストゾーンを使用する場合）
+        zone = route53.HostedZone.from_lookup(
+            self,
+            "HostedZone",
+            domain_name="nklifehub.com",
+        )
+
+        # ACM証明書の作成（Route 53での自動検証）
+        certificate = acm.Certificate(
+            self,
+            "Certificate",
+            domain_name="nklifehub.com",
+            subject_alternative_names=["*.nklifehub.com"],
+            validation=acm.CertificateValidation.from_dns(zone),
         )
 
         # Application Load Balancerの作成
@@ -111,25 +128,44 @@ class RssFeedStack(Stack):
             "RssFeedALB",
             vpc=vpc,
             internet_facing=True,
-            security_group=alb_security_group,  # 専用のセキュリティグループを使用
+            security_group=alb_security_group,
         )
 
-        # リスナーとターゲットグループの作成
-        listener = alb.add_listener(
-            "Listener",
-            port=80,
-            open=True,
+        # Route 53 Aレコードの作成
+        route53.ARecord(
+            self,
+            "ALBAliasRecord",
+            zone=zone,
+            target=route53.RecordTarget.from_alias(targets.LoadBalancerTarget(alb)),
+            record_name="app",
+        )
+
+        # HTTPSリスナーの作成
+        https_listener = alb.add_listener(
+            "HttpsListener",
+            port=443,
+            certificates=[certificate],
+            ssl_policy=elbv2.SslPolicy.RECOMMENDED,
             default_action=elbv2.ListenerAction.fixed_response(
                 status_code=404, content_type="text/plain", message_body="Not Found"
             ),
         )
 
+        # HTTPリスナーの作成（HTTPSへのリダイレクト）
+        http_listener = alb.add_listener(
+            "HttpListener",
+            port=80,
+            default_action=elbv2.ListenerAction.redirect(
+                protocol="HTTPS", port="443", permanent=True
+            ),
+        )
+
         # フロントエンド用ターゲットグループ
-        frontend_target_group = listener.add_targets(
+        frontend_target_group = https_listener.add_targets(
             "FrontendTarget",
             port=3000,
             protocol=elbv2.ApplicationProtocol.HTTP,
-            targets=[InstanceTarget(instance)],  # ここを修正
+            targets=[InstanceTarget(instance)],
             health_check=elbv2.HealthCheck(
                 path="/",
                 healthy_http_codes="200",
@@ -137,13 +173,13 @@ class RssFeedStack(Stack):
         )
 
         # バックエンド用ターゲットグループ
-        backend_target_group = listener.add_targets(
+        backend_target_group = https_listener.add_targets(
             "BackendTarget",
             port=8000,
             protocol=elbv2.ApplicationProtocol.HTTP,
-            targets=[InstanceTarget(instance)],  # ここを修正
+            targets=[InstanceTarget(instance)],
             health_check=elbv2.HealthCheck(
-                path="/docs",  # FastAPIのSwagger UI
+                path="/docs",
                 healthy_http_codes="200",
             ),
             priority=1,

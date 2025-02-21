@@ -1,0 +1,11 @@
+{
+  "availability-zones:account=584575096038:region=ap-northeast-1": [
+    "ap-northeast-1a",
+    "ap-northeast-1c",
+    "ap-northeast-1d"
+  ],
+  "hosted-zone:account=584575096038:domainName=nklifehub.com:region=ap-northeast-1": {
+    "Id": "/hostedzone/Z007753133ICPAX3MIZWF",
+    "Name": "nklifehub.com."
+  }
+}
