@@ -9,7 +9,8 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api/v1': {
-        target: 'http://backend:8000',
+        // ローカル実行時はbackend:8000, ECRプッシュ時はlocalhost:8000
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1')
       }

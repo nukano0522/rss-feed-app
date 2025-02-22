@@ -32,7 +32,8 @@ ENV VITE_PORT=3000
 ENV VITE_HOST=0.0.0.0
 
 # 開発サーバー起動
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+
 
 # ホットリロードのためのボリュームマウント用に作業ディレクトリを指定
 VOLUME ["/app/src", "/app/public"] 

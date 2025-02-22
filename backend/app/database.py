@@ -2,7 +2,8 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "mysql+aiomysql://user:password@db:3306/rss_reader"
+# ECSの場合localhost, Docker Composeの場合db
+DATABASE_URL = "mysql+aiomysql://user:password@localhost:3306/rss_reader"
 
 
 class Base(DeclarativeBase):
