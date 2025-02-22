@@ -7,14 +7,16 @@ if (import.meta.env.DEV) {
   debugEnvironment();
 }
 
-let baseURL: string;
-if (import.meta.env.DEV) {
-  baseURL = 'http://localhost:8000/api/v1';
-} else {
-  baseURL = import.meta.env.VITE_API_URL;
-}
+// let baseURL: string;
+// if (import.meta.env.DEV) {
+//   baseURL = 'http://localhost:8000/api/v1';
+// } else {
+//   baseURL = import.meta.env.VITE_API_URL;
+// }
 //検証用
 // const baseURL = 'http://localhost:8000/api/v1';
+
+const baseURL = import.meta.env.VITE_API_URL;
 
 console.log('API baseURL:', baseURL);
 
