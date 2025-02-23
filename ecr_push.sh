@@ -17,7 +17,7 @@ echo "Using AWS Account ID: ${AWS_ACCOUNT_ID}"
 echo "Using AWS Region: ${AWS_REGION}"
 
 # タグIDの設定
-tagId=v0.1.3
+tagId=v0.1.8
 
 # ECRへのログイン
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
@@ -52,12 +52,13 @@ case $1 in
         ;;
         
     "db")
-        echo "Pulling MySQL image and pushing to ECR..."
-        # MySQLイメージをプル
-        docker pull mysql:8.0
+        echo "Building and pushing database..."
+        docker build \
+            -t rss-feed-database \
+            -f ./db/Dockerfile ./db
         
         # ECRにプッシュするためのタグ付け
-        docker tag mysql:8.0 ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/rss-feed-database:${tagId}
+        docker tag rss-feed-database ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/rss-feed-database:${tagId}
         
         # ECRにプッシュ
         docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/rss-feed-database:${tagId}

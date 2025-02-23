@@ -1,3 +1,0 @@
-"""
-RSS Feed Application Infrastructure
-"""

@@ -20,7 +20,8 @@ COPY ./app ./app
 # 環境変数を設定
 ENV PYTHONPATH=/app
 ENV OPENAI_API_KEY=xxxx-xxxx-xxxx-xxxx
-ENV DATABASE_URL=mysql://user:password@localhost:3306/rss_reader
+# ENV DATABASE_URL=mysql://user:password@db:3306/rss_reader
+ENV DATABASE_URL=mysql+aiomysql://admin:4Cxr%3E%7C.0IPX%24kgETE%21y1.o%2B4d%2AmkS%3B%5Em@rssreaderrdsstack-rssreaderdatabase47848f56-ceihboypn9u7.cv6uaugkqe8s.ap-northeast-1.rds.amazonaws.com:3306/rss_reader
 
 # FastAPIアプリケーションを起動
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

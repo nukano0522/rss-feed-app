@@ -17,7 +17,7 @@ echo "Using AWS Account ID: ${AWS_ACCOUNT_ID}"
 echo "Using AWS Region: ${AWS_REGION}"
 
 # タグIDの設定
-tagId=v0.1.3
+tagId=v0.1.4
 
 # ECRへのログイン
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
@@ -64,15 +64,7 @@ case $1 in
         docker tag ${ECR_REPO}:${tagId} rss-feed-database:${tagId}
         
         echo "Starting database container..."
-        docker run -d \
-            -p 3306:3306 \
-            -e MYSQL_ROOT_PASSWORD=rootpassword \
-            -e MYSQL_DATABASE=rss_reader \
-            -e MYSQL_USER=user \
-            -e MYSQL_PASSWORD=password \
-            --name rss-feed-database \
-            rss-feed-database:${tagId} \
-            --default-authentication-plugin=mysql_native_password
+        docker run -d -p 3306:3306 rss-feed-database:${tagId}
         ;;
         
     *)

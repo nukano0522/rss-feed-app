@@ -16,4 +16,5 @@ aiohttp==3.8.5
 tenacity==8.2.2
 openai==1.61.0
 alembic==1.13.1
+boto3
 

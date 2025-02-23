@@ -16,7 +16,8 @@ if (import.meta.env.DEV) {
 //検証用
 // const baseURL = 'http://localhost:8000/api/v1';
 
-const baseURL = import.meta.env.VITE_API_URL;
+// const baseURL = import.meta.env.VITE_API_URL;
+const baseURL = '/api/v1';
 
 console.log('API baseURL:', baseURL);
 
