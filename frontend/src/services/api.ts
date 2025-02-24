@@ -9,17 +9,12 @@ if (import.meta.env.MODE === 'development' && import.meta.env.DEV) {
 
 // プロトコルに応じてベースURLを設定
 const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const protocol = import.meta.env.PROD ? 'https:' : window.location.protocol;
-    const host = window.location.host;
-    const url = import.meta.env.PROD
-      ? `https://${host}/api/v1`
-      : `${protocol}//${host}/api/v1`;
-    return url;
+  // developmentの場合はlocalhost:8000, productionの場合は/api/v1
+  if (import.meta.env.MODE === 'development') {
+    return 'http://localhost:8000/api/v1';
   }
   return '/api/v1';
 };
-
 const baseURL = getBaseUrl();
 
 const api = axios.create({

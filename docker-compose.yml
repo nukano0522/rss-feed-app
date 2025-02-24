@@ -5,7 +5,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      # dockerfile: Dockerfile.prod
 
     ports:
       - "3000:3000"
@@ -42,12 +41,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=mysql://user:password@db:3306/rss_reader
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./backend:/app
       - /app/__pycache__
+    env_file:
+      - ./backend/.env.development
     depends_on:
       db:
         condition: service_healthy
@@ -61,6 +59,9 @@ services:
       - MYSQL_DATABASE=rss_reader
       - MYSQL_USER=user
       - MYSQL_PASSWORD=password
+    # build:
+    #   context: ./db
+    #   dockerfile: Dockerfile
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
