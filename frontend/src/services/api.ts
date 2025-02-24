@@ -1,36 +1,42 @@
 import axios from 'axios';
 import { Feed, Article, RssFeedResponse, FavoriteArticleRequest } from '../types';
-import { debugEnvironment } from '../utils/debug';
+import { debugEnvironment, debugApiRequest, debugApiResponse, debugApiError } from '../utils/debug';
 
-// 開発環境の場合デバッグ情報を表示
-if (import.meta.env.DEV) {
+// 開発環境の場合のみデバッグ情報を表示
+if (import.meta.env.MODE === 'development' && import.meta.env.DEV) {
   debugEnvironment();
 }
 
-// let baseURL: string;
-// if (import.meta.env.DEV) {
-//   baseURL = 'http://localhost:8000/api/v1';
-// } else {
-//   baseURL = import.meta.env.VITE_API_URL;
-// }
-//検証用
-// const baseURL = 'http://localhost:8000/api/v1';
+// プロトコルに応じてベースURLを設定
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const protocol = import.meta.env.PROD ? 'https:' : window.location.protocol;
+    const host = window.location.host;
+    const url = import.meta.env.PROD
+      ? `https://${host}/api/v1`
+      : `${protocol}//${host}/api/v1`;
+    return url;
+  }
+  return '/api/v1';
+};
 
-// const baseURL = import.meta.env.VITE_API_URL;
-const baseURL = '/api/v1';
-
-console.log('API baseURL:', baseURL);
+const baseURL = getBaseUrl();
 
 const api = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true
 });
 
+// リクエストのインターセプター
 api.interceptors.request.use(
   (config) => {
+    if (import.meta.env.PROD && config.url && !config.url.startsWith('https://')) {
+      config.url = config.url.replace(/^http:/, 'https:');
+    }
+    debugApiRequest(config);
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -38,18 +44,23 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    debugApiError(error);
     return Promise.reject(error);
   }
 );
 
+// レスポンスのインターセプター
 api.interceptors.response.use(
-  response => response,
+  response => {
+    debugApiResponse(response);
+    return response;
+  },
   error => {
+    debugApiError(error);
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
-    console.error('API Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );

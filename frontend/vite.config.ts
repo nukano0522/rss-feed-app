@@ -9,8 +9,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api/v1': {
-        // ローカル実行時はbackend:8000, ECRプッシュ時はlocalhost:8000
-        target: 'http://backend:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1')
       }
@@ -18,7 +17,8 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       'rssfee-rssfe-uf6brkcl43tr-2147301523.ap-northeast-1.elb.amazonaws.com',
-      'nklifehub.com'
+      'nklifehub.com',
+      'app.nklifehub.com'
     ]
   },
   resolve: {

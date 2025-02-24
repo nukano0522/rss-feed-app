@@ -3,7 +3,9 @@ from typing import Optional
 import os
 import logging
 from tenacity import retry, stop_after_attempt, wait_exponential
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 

@@ -26,7 +26,7 @@ content_extractor = ContentExtractor()
 summarizer = ArticleSummarizer()
 
 
-@router.get("/", response_model=List[schemas.Feed])
+@router.get("", response_model=List[schemas.Feed])
 async def get_feeds(
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
@@ -36,7 +36,7 @@ async def get_feeds(
     return result.scalars().all()
 
 
-@router.post("/", response_model=schemas.Feed)
+@router.post("", response_model=schemas.Feed)
 async def create_feed(
     feed: schemas.FeedCreate,
     user: User = Depends(current_active_user),
