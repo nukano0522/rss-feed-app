@@ -4,13 +4,31 @@ from app import models
 import logging
 from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 # ロガーの設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# ライフスパンコンテキストマネージャ
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 起動時の処理
+    logger.info("アプリケーション起動中...")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("データベース初期化完了")
+
+    yield  # アプリケーションの実行
+
+    # シャットダウン時の処理
+    logger.info("アプリケーション終了中...")
+    # 必要に応じてリソースのクリーンアップを行う
+
+
 # FastAPIアプリケーションの作成
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # CORSミドルウェアの設定
 app.add_middleware(
@@ -28,10 +46,3 @@ app.add_middleware(
 
 # APIルーターを追加
 app.include_router(api_router, prefix="/api/v1")
-
-
-# データベースの初期化
-@app.on_event("startup")
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from typing import List
+from typing import List, Callable
 from datetime import datetime
-import requests
 import logging
 from app.database import get_async_session
 from app.models.user import User
@@ -21,9 +20,14 @@ RSS2JSON_ENDPOINT = "https://api.rss2json.com/v1/api.json"
 
 router = APIRouter()
 
-# シングルトンとしてインスタンスを作成
-content_extractor = ContentExtractor()
-summarizer = ArticleSummarizer()
+
+# 依存性注入のための関数
+def get_content_extractor() -> ContentExtractor:
+    return ContentExtractor()
+
+
+def get_summarizer() -> ArticleSummarizer:
+    return ArticleSummarizer()
 
 
 @router.get("", response_model=List[schemas.Feed])
@@ -129,16 +133,20 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
             "rss_url": url,
         }
 
-        response = requests.get(RSS2JSON_ENDPOINT, params=params)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(RSS2JSON_ENDPOINT, params=params) as response:
+                # RSS2JSONのレートリミットチェック
+                if response.status == 429:
+                    logger.warning("Rate limit reached for RSS2JSON API")
+                    return {
+                        "status": "error",
+                        "code": 429,
+                        "message": "Rate limit exceeded",
+                    }
 
-        # RSS2JSONのレートリミットチェック
-        if response.status_code == 429:
-            logger.warning("Rate limit reached for RSS2JSON API")
-            return {"status": "error", "code": 429, "message": "Rate limit exceeded"}
+                response.raise_for_status()
+                data = await response.json()
 
-        response.raise_for_status()
-
-        data = response.json()
         logger.debug(f"RSS2JSON response status: {data.get('status')}")
 
         if data["status"] != "ok":
@@ -165,7 +173,7 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
         logger.info(f"Successfully processed {len(articles)} articles")
         return {"entries": articles, "status": "success", "feed": data.get("feed", {})}
 
-    except requests.RequestException as e:
+    except aiohttp.ClientError as e:
         logger.error(f"Request error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
@@ -288,6 +296,8 @@ async def summarize_article(
     article: schemas.AiSummaryCreate,
     lang: str = Query("ja", description="要約の言語（ja/en）"),
     session: AsyncSession = Depends(get_async_session),
+    content_extractor: ContentExtractor = Depends(get_content_extractor),
+    summarizer: ArticleSummarizer = Depends(get_summarizer),
 ):
     # 既存の要約をチェック
     existing_summary = await session.execute(

@@ -216,14 +216,16 @@ const ArticleList: React.FC<ArticleListProps> = ({
           <div key={article.link + index}>
             <HoverCard>
               <Card className="overflow-hidden transition-all hover:shadow-lg h-[240px]">
-                <div className={`relative cursor-pointer flex h-full ${
-                  readArticles.includes(article.link) ? 'opacity-70' : ''
-                }`} onClick={() => handleArticleClick(article.link)}>
+                <div className={`relative cursor-pointer flex h-full`} 
+                     onClick={() => handleArticleClick(article.link)}
+                     tabIndex={0}
+                     onKeyDown={(e) => e.key === 'Enter' && handleArticleClick(article.link)}
+                     aria-label={`記事: ${article.title}`}>
                   <div className="w-[120px] h-full relative flex-shrink-0">
                     <img
                       src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
                       alt={article.title}
-                      className="object-cover w-full h-full"
+                      className={`object-cover w-full h-full ${readArticles.includes(article.link) ? 'opacity-70' : ''}`}
                     />
                     <TooltipProvider>
                       <Tooltip>
@@ -233,6 +235,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
                             size="icon"
                             className="absolute top-2 right-2 bg-white/80 hover:bg-white/90"
                             onClick={(e) => handleToggleFavorite(article, e)}
+                            aria-label={favoriteArticles.includes(article.link) ? "お気に入りから削除" : "お気に入りに追加"}
                           >
                             {favoriteArticles.includes(article.link) ? (
                               <Star className="h-4 w-4 text-yellow-500" />
@@ -253,6 +256,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
                         className="absolute top-12 right-2 bg-white/80 hover:bg-white/90"
                         onClick={(e) => handleSummarize(article, e)}
                         disabled={loadingSummaries[article.link]}
+                        aria-label="AI要約を生成"
                       >
                         {loadingSummaries[article.link] ? (
                           <Skeleton className="h-4 w-4 rounded-full" />

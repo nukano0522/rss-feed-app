@@ -59,15 +59,15 @@ const FeedManager: React.FC<FeedManagerProps> = ({
   const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
 
   const handleAddNewFeed = (): void => {
-    if (newFeed.name && newFeed.url) {
-      onAddFeed({
-        name: newFeed.name,
-        url: newFeed.url,
-        enabled: true,
-        default_image: newFeed.defaultImage || null
-      });
-      setNewFeed({ name: '', url: '', defaultImage: '' });
-    }
+    if (!newFeed.name || !newFeed.url) return;
+    
+    onAddFeed({
+      name: newFeed.name,
+      url: newFeed.url,
+      enabled: true,
+      default_image: newFeed.defaultImage || null
+    });
+    setNewFeed({ name: '', url: '', defaultImage: '' });
   };
 
   const handleEditClick = (feed: Feed): void => {
@@ -226,6 +226,7 @@ const FeedManager: React.FC<FeedManagerProps> = ({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEditClick(feed)}
+                          aria-label={`${feed.name}を編集`}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -233,6 +234,7 @@ const FeedManager: React.FC<FeedManagerProps> = ({
                           variant="ghost"
                           size="icon"
                           onClick={() => onDeleteFeed(feed.id)}
+                          aria-label={`${feed.name}を削除`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

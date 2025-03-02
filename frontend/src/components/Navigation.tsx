@@ -36,6 +36,8 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
               variant={selectedMenu === 'feeds' ? 'secondary' : 'ghost'}
               className="w-full justify-start gap-2 mb-2"
               onClick={() => onMenuSelect('feeds')}
+              aria-label="フィード管理"
+              aria-pressed={selectedMenu === 'feeds'}
             >
               <Rss className="h-4 w-4" />
               フィード管理
@@ -44,6 +46,8 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
               variant={selectedMenu === 'articles' ? 'secondary' : 'ghost'}
               className="w-full justify-start gap-2 mb-2"
               onClick={() => onMenuSelect('articles')}
+              aria-label="記事一覧"
+              aria-pressed={selectedMenu === 'articles'}
             >
               <FileText className="h-4 w-4" />
               記事一覧
@@ -52,6 +56,8 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
               variant={selectedMenu === 'favorites' ? 'secondary' : 'ghost'}
               className="w-full justify-start gap-2"
               onClick={() => onMenuSelect('favorites')}
+              aria-label="お気に入り"
+              aria-pressed={selectedMenu === 'favorites'}
             >
               <Star className="h-4 w-4" />
               お気に入り
@@ -64,6 +70,7 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
             variant="ghost"
             className="w-full justify-start gap-2"
             onClick={handleLogout}
+            aria-label="ログアウト"
           >
             <LogOut className="h-4 w-4" />
             ログアウト
