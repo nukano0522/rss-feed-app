@@ -1,48 +1,64 @@
 from fastapi import FastAPI
-from app.database import engine, Base
-from app import models
 import logging
-from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 
 # ロガーの設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# ライフスパンコンテキストマネージャ
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 起動時の処理
-    logger.info("アプリケーション起動中...")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("データベース初期化完了")
+# アプリケーション作成関数
+def get_application():
+    # FastAPIアプリケーションの作成（lifespanなし）
+    app = FastAPI()
 
-    yield  # アプリケーションの実行
+    # CORSミドルウェアの設定
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "http://rssfee-rssfe-uf6brkcl43tr-2147301523.ap-northeast-1.elb.amazonaws.com",
+            "https://app.nklifehub.com",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-    # シャットダウン時の処理
-    logger.info("アプリケーション終了中...")
-    # 必要に応じてリソースのクリーンアップを行う
+    # 最小限のヘルスチェックエンドポイント
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy"}
+
+    # 必要に応じて他のルーターを遅延ロード
+    @app.on_event("startup")
+    async def load_routes():
+        try:
+            # APIルーターのインポートと登録
+            from app.api.v1.router import api_router
+
+            app.include_router(api_router, prefix="/api/v1")
+            logger.info("APIルーターが正常に登録されました")
+
+            # データベース初期化
+            try:
+                from app.database import engine, Base
+                from app import models
+
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+                logger.info("データベーステーブルが正常に初期化されました")
+            except Exception as db_error:
+                logger.error(
+                    f"データベース初期化中にエラーが発生しました: {str(db_error)}"
+                )
+                # データベースエラーでもアプリケーションは起動させる
+        except Exception as e:
+            logger.error(f"アプリケーション起動中にエラーが発生しました: {str(e)}")
+            # エラーが発生してもアプリケーションは起動させる
+
+    return app
 
 
-# FastAPIアプリケーションの作成
-app = FastAPI(lifespan=lifespan)
-
-# CORSミドルウェアの設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # 開発環境
-        "http://rssfee-rssfe-uf6brkcl43tr-2147301523.ap-northeast-1.elb.amazonaws.com",  # 本番環境
-        "https://app.nklifehub.com",
-    ],
-    allow_credentials=True,  # Cookie送信を許可
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# APIルーターを追加
-app.include_router(api_router, prefix="/api/v1")
+# 直接実行された場合のエントリーポイント
+app = get_application()
