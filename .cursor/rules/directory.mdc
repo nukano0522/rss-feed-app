@@ -1,0 +1,51 @@
+---
+description: ディレクトリ構成
+globs: *
+alwaysApply: true
+---
+
+# ディレクトリ構成
+## バックエンド
+backend/
+├── app/                      # メインアプリケーションコード
+│   ├── api/                  # API定義
+│   │   └── v1/               # APIバージョン1
+│   │       ├── endpoints/    # エンドポイント実装
+│   │       │   └── feeds.py  # フィード関連のエンドポイント
+│   │       └── router.py     # APIルーター設定
+│   ├── auth/                 # 認証関連
+│   ├── models/               # データベースモデル
+│   │   ├── feed.py           # フィード関連のモデル
+│   │   └── user.py           # ユーザーモデル
+│   ├── schemas/              # Pydanticスキーマ
+│   │   ├── feed.py           # フィード関連のスキーマ
+│   │   └── user.py           # ユーザースキーマ
+│   ├── utils/                # ユーティリティ関数
+│   │   ├── content_extractor.py # コンテンツ抽出ユーティリティ
+│   │   └── summarizer.py     # 記事要約ユーティリティ
+│   ├── database.py           # データベース接続設定
+│   └── main.py               # アプリケーションのエントリーポイント
+├── migration/                # データベースマイグレーション
+├── Dockerfile                # 開発環境用Docker設定
+└── Dockerfile.prod           # 本番環境用Docker設定
+
+## フロントエンド
+frontend/
+├── src/                      # ソースコード
+│   ├── components/           # Reactコンポーネント
+│   │   ├── ArticleList.tsx   # 記事一覧表示
+│   │   ├── FeedManager.tsx   # フィード管理UI
+│   │   ├── LoginForm.tsx     # ログインフォーム
+│   │   ├── Navigation.tsx    # ナビゲーションバー
+│   │   ├── RssFeedReader.tsx # メインRSSリーダー
+│   │   └── ui/               # UIコンポーネント
+│   ├── hooks/                # カスタムReactフック
+│   │   └── useAuth.ts        # 認証フック
+│   ├── services/             # APIサービス
+│   │   └── api.ts            # バックエンドAPI連携
+│   ├── types/                # TypeScript型定義
+│   ├── utils/                # ユーティリティ関数
+│   ├── App.tsx               # メインアプリケーション
+│   └── main.tsx              # エントリーポイント
+├── Dockerfile                # 開発環境用Docker設定
+└── Dockerfile.prod           # 本番環境用Docker設定

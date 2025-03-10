@@ -13,7 +13,9 @@ const getBaseUrl = () => {
   if (import.meta.env.MODE === 'development') {
     return 'http://localhost:8000/api/v1';
   }
-  return '/api/v1';
+  // TO-DO ecsの場合は/api/v1, lambdaの場合はimport.meta.env.VITE_API_BASE_URL
+  // return '/api/v1';
+  return import.meta.env.VITE_API_BASE_URL;
 };
 const baseURL = getBaseUrl();
 
