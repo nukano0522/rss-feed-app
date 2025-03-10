@@ -4,6 +4,7 @@ import subprocess
 import json
 from aws_cdk import App, Environment
 from stacks.rds_stack import RdsStack
+from stacks.alb_stack import NkLoadBalancerStack
 
 # AWS認証情報を環境変数から取得
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -33,6 +34,10 @@ ECS_SG_ID = "sg-00c6f726365cf9995"  # ECSのセキュリティグループID
 
 RdsStack(
     app, "RSSReaderRDSStack", vpc_id=VPC_ID, ecs_security_group_id=ECS_SG_ID, env=env
+)
+
+NkLoadBalancerStack(
+    app, "nk-load-balancer", vpc_id=VPC_ID, ecs_security_group_id=ECS_SG_ID, env=env
 )
 
 app.synth()

@@ -17,6 +17,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from '../hooks/useAuth'
 import { useState } from 'react'
+import { Loader2 } from "lucide-react"
 
 // バリデーションスキーマの定義
 const formSchema = z.object({
@@ -26,6 +27,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const [error, setError] = useState<string>('')
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const { login } = useAuth()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -38,10 +40,13 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setError('')
+    setIsLoading(true)
     try {
       await login(values.email, values.password)
     } catch (err) {
       setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -68,7 +73,7 @@ export function LoginForm() {
                   <FormItem>
                     <FormLabel>メールアドレス</FormLabel>
                     <FormControl>
-                      <Input placeholder="example@example.com" {...field} />
+                      <Input placeholder="example@example.com" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -81,14 +86,21 @@ export function LoginForm() {
                   <FormItem>
                     <FormLabel>パスワード</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <Input type="password" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                ログイン
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ログイン中...
+                  </>
+                ) : (
+                  "ログイン"
+                )}
               </Button>
             </form>
           </Form>
