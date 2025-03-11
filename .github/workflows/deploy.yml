@@ -15,9 +15,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+      
+      - name: Clean npm cache and remove package-lock
+        run: |
+          cd frontend
+          rm -f package-lock.json
+          npm cache clean --force
           
       - name: Install dependencies
         run: cd frontend && npm install
+        
+      - name: Install Rollup native dependencies
+        run: cd frontend && npm install @rollup/rollup-linux-x64-gnu
         
       - name: Create .env file
         run: |
