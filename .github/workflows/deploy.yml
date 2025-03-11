@@ -19,6 +19,12 @@ jobs:
       - name: Install dependencies
         run: cd frontend && npm install
         
+      - name: Create .env file
+        run: |
+          cd frontend
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env.production
+          echo "VITE_STORAGE_TYPE=${{ secrets.VITE_STORAGE_TYPE }}" >> .env.production
+        
       - name: Build
         run: cd frontend && npm run build:prod
         
