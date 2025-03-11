@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Feed, NewFeed } from '../types';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,6 +7,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardFooter,
+  CardDescription,
 } from "@/components/ui/card"
 import {
   Select,
@@ -25,7 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, ExternalLink } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 // デフォルト画像の定義
 const DEFAULT_IMAGES: Record<string, string> = {
@@ -57,6 +60,21 @@ const FeedManager: React.FC<FeedManagerProps> = ({
     defaultImage: ''
   });
   const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 画面サイズの検出
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   const handleAddNewFeed = (): void => {
     if (!newFeed.name || !newFeed.url) return;
@@ -105,14 +123,19 @@ const FeedManager: React.FC<FeedManagerProps> = ({
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex flex-col gap-6">
+    <div className="container mx-auto py-4 px-2 sm:px-4 md:px-6 md:py-6">
+      <div className="flex flex-col gap-4 md:gap-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle>RSSフィード管理</CardTitle>
+            {editingFeed && (
+              <CardDescription>
+                「{editingFeed.name}」を編集中
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-4">
               <div className="space-y-2">
                 <Label htmlFor="name">フィード名</Label>
                 <Input
@@ -185,67 +208,126 @@ const FeedManager: React.FC<FeedManagerProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>フィード</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead className="w-[100px]">有効/無効</TableHead>
-                  <TableHead className="w-[100px]">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {feeds.map((feed) => (
-                  <TableRow key={feed.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {feed.default_image && (
-                          <img
-                            src={feed.default_image}
-                            alt={feed.name}
-                            className="w-6 h-6"
-                          />
-                        )}
-                        <span>{feed.name || '名称未設定'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {feed.url}
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={feed.enabled}
-                        onCheckedChange={() => onToggleFeed(feed.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(feed)}
-                          aria-label={`${feed.name}を編集`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDeleteFeed(feed.id)}
-                          aria-label={`${feed.name}を削除`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        {/* デスクトップ向けテーブル表示 */}
+        {!isMobile && (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>フィード</TableHead>
+                    <TableHead>URL</TableHead>
+                    <TableHead className="w-[100px]">有効/無効</TableHead>
+                    <TableHead className="w-[100px]">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {feeds.map((feed) => (
+                    <TableRow key={feed.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {feed.default_image && (
+                            <img
+                              src={feed.default_image}
+                              alt={feed.name}
+                              className="w-6 h-6"
+                            />
+                          )}
+                          <span>{feed.name || '名称未設定'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {feed.url}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={feed.enabled}
+                          onCheckedChange={() => onToggleFeed(feed.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditClick(feed)}
+                            aria-label={`${feed.name}を編集`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDeleteFeed(feed.id)}
+                            aria-label={`${feed.name}を削除`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* モバイル向けカード表示 */}
+        {isMobile && (
+          <div className="space-y-3">
+            {feeds.map((feed) => (
+              <Card key={feed.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {feed.default_image && (
+                        <img
+                          src={feed.default_image}
+                          alt={feed.name}
+                          className="w-6 h-6"
+                        />
+                      )}
+                      <CardTitle className="text-base">{feed.name || '名称未設定'}</CardTitle>
+                    </div>
+                    <Switch
+                      checked={feed.enabled}
+                      onCheckedChange={() => onToggleFeed(feed.id)}
+                      aria-label={`${feed.name}を${feed.enabled ? '無効' : '有効'}にする`}
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <div className="text-xs font-mono text-muted-foreground break-all">
+                    {feed.url}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end pt-0 pb-2">
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditClick(feed)}
+                      aria-label={`${feed.name}を編集`}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      編集
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeleteFeed(feed.id)}
+                      aria-label={`${feed.name}を削除`}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      削除
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
