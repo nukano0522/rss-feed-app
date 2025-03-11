@@ -21,6 +21,12 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Star, StarOff, Wand2, Filter, X } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -159,6 +165,8 @@ const ArticleList: React.FC<ArticleListProps> = ({
   const [loadingSummaries, setLoadingSummaries] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [selectedArticleForSummary, setSelectedArticleForSummary] = useState<Article | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // 画面サイズの検出
   useEffect(() => {
@@ -212,8 +220,15 @@ const ArticleList: React.FC<ArticleListProps> = ({
     if (feedId) {
       try {
         setLoadingSummaries(prev => ({ ...prev, [article.link]: true }));
-        const response = await feedsApi.summarizeArticle(article, feedId);
-        setSummaries(prev => ({ ...prev, [article.link]: response.data.summary }));
+        // 選択された記事を設定してダイアログを開く
+        setSelectedArticleForSummary(article);
+        setDialogOpen(true);
+        
+        // まだ要約がない場合のみAPIを呼び出す
+        if (!summaries[article.link]) {
+          const response = await feedsApi.summarizeArticle(article, feedId);
+          setSummaries(prev => ({ ...prev, [article.link]: response.data.summary }));
+        }
       } catch (error) {
         console.error('Error getting summary:', error);
       } finally {
@@ -409,10 +424,10 @@ const ArticleList: React.FC<ArticleListProps> = ({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {filteredArticles.map((article, index) => (
-            <div key={article.link + index}>
-              <HoverCard openDelay={isMobile ? 0 : 300} closeDelay={isMobile ? 0 : 200}>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+            {filteredArticles.map((article, index) => (
+              <div key={article.link + index}>
                 <Card className="overflow-hidden transition-all hover:shadow-lg h-auto sm:h-[240px]">
                   <div 
                     className={`relative cursor-pointer flex flex-row h-full`} 
@@ -421,7 +436,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
                     onKeyDown={(e) => e.key === 'Enter' && handleArticleClick(article.link)}
                     aria-label={`記事: ${article.title}`}
                   >
-                    <div className="w-[100px] h-full relative flex-shrink-0">
+                    <div className="w-[100px] sm:w-[120px] h-full relative flex-shrink-0">
                       <img
                         src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
                         alt={article.title}
@@ -450,22 +465,23 @@ const ArticleList: React.FC<ArticleListProps> = ({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <HoverCardTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 bg-white/80 hover:bg-white/90"
-                            onClick={(e) => handleSummarize(article, e)}
-                            disabled={loadingSummaries[article.link]}
-                            aria-label="AI要約を生成"
-                          >
-                            {loadingSummaries[article.link] ? (
-                              <Skeleton className="h-3 w-3 rounded-full" />
-                            ) : (
-                              <Wand2 className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </HoverCardTrigger>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 bg-white/80 hover:bg-white/90"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSummarize(article, e);
+                          }}
+                          disabled={loadingSummaries[article.link]}
+                          aria-label="AI要約を生成"
+                        >
+                          {loadingSummaries[article.link] ? (
+                            <Skeleton className="h-3 w-3 rounded-full" />
+                          ) : (
+                            <Wand2 className="h-3 w-3" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -490,24 +506,34 @@ const ArticleList: React.FC<ArticleListProps> = ({
                     </div>
                   </div>
                 </Card>
-                {summaries[article.link] && (
-                  <HoverCardContent 
-                    side={isMobile ? "bottom" : "right"} 
-                    align={isMobile ? "center" : "start"} 
-                    className="w-[calc(100vw-32px)] sm:w-80 max-h-[300px] overflow-auto"
-                  >
+              </div>
+            ))}
+          </div>
+
+          {/* すべてのデバイス向けダイアログ */}
+          {selectedArticleForSummary && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogContent className={`${isMobile ? 'w-[calc(100vw-32px)]' : 'w-full'} max-w-md`}>
+                <DialogHeader>
+                  <DialogTitle>AI要約</DialogTitle>
+                </DialogHeader>
+                <div className="mt-2">
+                  {loadingSummaries[selectedArticleForSummary.link] ? (
                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold">AI要約</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {summaries[article.link]}
-                      </p>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
                     </div>
-                  </HoverCardContent>
-                )}
-              </HoverCard>
-            </div>
-          ))}
-        </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {summaries[selectedArticleForSummary.link] || "要約を生成中..."}
+                    </p>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </>
       )}
     </div>
   );
