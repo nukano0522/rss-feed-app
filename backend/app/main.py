@@ -42,8 +42,10 @@ def get_application():
 
             # データベース初期化
             try:
-                from app.database import engine, Base
+                from app.database import engine, Base, get_async_session
                 from app import models
+                from sqlalchemy import select
+                from sqlalchemy.ext.asyncio import AsyncSession
 
                 async with engine.begin() as conn:
                     await conn.run_sync(Base.metadata.create_all)
