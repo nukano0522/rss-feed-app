@@ -27,7 +27,7 @@ const FavoritesTab: React.FC<FavoritesTabProps> = ({
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">お気に入り記事</h2>
+        <h2 className="text-xl font-bold"></h2>
         <ExternalArticleSheet
           open={isExternalArticleSheetOpen}
           onOpenChange={setIsExternalArticleSheetOpen}

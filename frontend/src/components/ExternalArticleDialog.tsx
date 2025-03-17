@@ -107,12 +107,12 @@ const ExternalArticleSheet: React.FC<ExternalArticleSheetProps> = ({
       <SheetTrigger asChild>
         <Button className="gap-1">
           <Plus className="h-4 w-4" />
-          外部記事を追加
+          記事を追加
         </Button>
       </SheetTrigger>
       <SheetContent className="sm:max-w-[500px]">
         <SheetHeader>
-          <SheetTitle>外部記事をお気に入りに追加</SheetTitle>
+          <SheetTitle>記事をお気に入りに追加</SheetTitle>
         </SheetHeader>
         
         <div className="space-y-4 py-4">

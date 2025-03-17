@@ -50,7 +50,7 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
   const NavContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-4 md:p-6">
-        <h2 className="text-lg font-semibold">RSSリーダー</h2>
+        <h2 className="text-lg font-semibold">NK Life Hub</h2>
       </div>
       <Separator />
       <ScrollArea className="flex-1">
@@ -107,7 +107,7 @@ const Navigation: React.FC<NavigationProps> = ({ selectedMenu, onMenuSelect }) =
     return (
       <>
         <div className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-background border-b">
-          <h2 className="text-lg font-semibold">RSSリーダー</h2>
+          <h2 className="text-lg font-semibold">NK Life Hub</h2>
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="メニュー">
