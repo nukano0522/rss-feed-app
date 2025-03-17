@@ -70,7 +70,7 @@ class FavoriteArticle(FavoriteArticleBase):
 
 
 class AiSummaryBase(BaseModel):
-    feed_id: int
+    feed_id: Optional[int] = None
     article_link: str
 
 

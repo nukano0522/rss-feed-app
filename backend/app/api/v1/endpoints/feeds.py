@@ -307,13 +307,19 @@ async def summarize_article(
     content_extractor: ContentExtractor = Depends(get_content_extractor),
     summarizer: ArticleSummarizer = Depends(get_summarizer),
 ):
+    # 外部記事の場合は feed_id を None として扱う
+    feed_id = None if article.feed_id == 0 else article.feed_id
+
     # 既存の要約をチェック
-    existing_summary = await session.execute(
-        select(models.AiSummary).where(
-            models.AiSummary.feed_id == article.feed_id,
-            models.AiSummary.article_link == article.article_link,
-        )
+    query = select(models.AiSummary).where(
+        models.AiSummary.article_link == article.article_link
     )
+    if feed_id is not None:
+        query = query.where(models.AiSummary.feed_id == feed_id)
+    else:
+        query = query.where(models.AiSummary.feed_id.is_(None))
+
+    existing_summary = await session.execute(query)
     summary = existing_summary.scalar_one_or_none()
     if summary:
         return summary
@@ -334,7 +340,7 @@ async def summarize_article(
 
         # 要約をDBに保存
         new_summary = models.AiSummary(
-            feed_id=article.feed_id,
+            feed_id=feed_id,
             article_link=article.article_link,
             summary=summary_text,
         )

@@ -16,11 +16,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog"
 import { Star, StarOff, Wand2, Filter, X } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -159,6 +161,8 @@ const ArticleList: React.FC<ArticleListProps> = ({
   const [loadingSummaries, setLoadingSummaries] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false);
+  const [currentSummaryArticle, setCurrentSummaryArticle] = useState<Article | null>(null);
 
   // 画面サイズの検出
   useEffect(() => {
@@ -208,17 +212,33 @@ const ArticleList: React.FC<ArticleListProps> = ({
 
   const handleSummarize = async (article: Article, e: React.MouseEvent) => {
     e.stopPropagation();
-    const feedId = feedIdMap[article.feedUrl];
-    if (feedId) {
-      try {
-        setLoadingSummaries(prev => ({ ...prev, [article.link]: true }));
-        const response = await feedsApi.summarizeArticle(article, feedId);
-        setSummaries(prev => ({ ...prev, [article.link]: response.data.summary }));
-      } catch (error) {
-        console.error('Error getting summary:', error);
-      } finally {
-        setLoadingSummaries(prev => ({ ...prev, [article.link]: false }));
-      }
+    
+    // 現在の記事を設定
+    setCurrentSummaryArticle(article);
+    
+    // 既に要約がある場合はダイアログを表示
+    if (summaries[article.link]) {
+      setShowSummaryDialog(true);
+      return;
+    }
+    
+    // 外部記事の場合は feedId を 0 として扱う
+    const isExternal = article.feedUrl === 'external://articles';
+    const feedId = isExternal ? 0 : feedIdMap[article.feedUrl];
+    
+    // 処理中の状態を設定
+    setLoadingSummaries(prev => ({ ...prev, [article.link]: true }));
+    
+    try {
+      const response = await feedsApi.summarizeArticle(article, feedId || 0);
+      setSummaries(prev => ({ ...prev, [article.link]: response.data.summary }));
+      // 要約が完了したらダイアログを表示
+      setShowSummaryDialog(true);
+    } catch (error) {
+      console.error('Error getting summary:', error);
+      // エラー時にトースト通知などを表示することも検討
+    } finally {
+      setLoadingSummaries(prev => ({ ...prev, [article.link]: false }));
     }
   };
 
@@ -283,6 +303,34 @@ const ArticleList: React.FC<ArticleListProps> = ({
 
   return (
     <div className="container mx-auto px-2 sm:px-4 md:px-6">
+      {/* AI要約ダイアログ */}
+      {currentSummaryArticle && (
+        <Dialog open={showSummaryDialog} onOpenChange={setShowSummaryDialog}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">AI要約</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <h3 className="text-base font-medium mb-2">{currentSummaryArticle.title}</h3>
+              {loadingSummaries[currentSummaryArticle.link] ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                </div>
+              ) : (
+                <div className="bg-muted/50 p-4 rounded-md">
+                  <p className="text-sm whitespace-pre-line">
+                    {summaries[currentSummaryArticle.link] || "要約を生成できませんでした。"}
+                  </p>
+                </div>
+              )}
+              <div className="mt-4 text-xs text-muted-foreground">
+                <p>元記事: <a href={currentSummaryArticle.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSummaryArticle.link}</a></p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* モバイル向けフィルターボタン */}
       <div className="md:hidden flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">記事一覧</h2>
@@ -412,99 +460,90 @@ const ArticleList: React.FC<ArticleListProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {filteredArticles.map((article, index) => (
             <div key={article.link + index}>
-              <HoverCard openDelay={isMobile ? 0 : 300} closeDelay={isMobile ? 0 : 200}>
-                <Card className="overflow-hidden transition-all hover:shadow-lg h-auto sm:h-[240px]">
-                  <div 
-                    className={`relative cursor-pointer flex flex-row h-full`} 
-                    onClick={() => handleArticleClick(article.link)}
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && handleArticleClick(article.link)}
-                    aria-label={`記事: ${article.title}`}
-                  >
-                    <div className="w-[100px] h-full relative flex-shrink-0">
-                      <img
-                        src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
-                        alt={article.title}
-                        className={`object-cover w-full h-full ${readArticles.includes(article.link) ? 'opacity-70' : ''}`}
-                      />
-                      <div className="absolute top-1 right-1 flex flex-col gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 bg-white/80 hover:bg-white/90"
-                                onClick={(e) => handleToggleFavorite(article, e)}
-                                aria-label={favoriteArticles.includes(article.link) ? "お気に入りから削除" : "お気に入りに追加"}
-                              >
-                                {favoriteArticles.includes(article.link) ? (
-                                  <Star className="h-3 w-3 text-yellow-500" />
-                                ) : (
-                                  <StarOff className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>お気に入り{favoriteArticles.includes(article.link) ? 'から削除' : 'に追加'}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <HoverCardTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 bg-white/80 hover:bg-white/90"
-                            onClick={(e) => handleSummarize(article, e)}
-                            disabled={loadingSummaries[article.link]}
-                            aria-label="AI要約を生成"
-                          >
-                            {loadingSummaries[article.link] ? (
-                              <Skeleton className="h-3 w-3 rounded-full" />
-                            ) : (
-                              <Wand2 className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </HoverCardTrigger>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <CardContent className="p-2 sm:p-3">
-                        <div className="text-xs text-muted-foreground mb-1 truncate">
-                          {article.feedName || feedNameMap[article.feedUrl] || article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
-                        </div>
-                        <CardTitle className="text-sm sm:text-base mb-1 line-clamp-2 sm:line-clamp-4">
-                          {article.title}
-                        </CardTitle>
-                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-3">
-                          {article.description || "説明はありません"}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-1 sm:mt-2">
-                          {article.categories?.slice(0, 2).map((category, i) => (
-                            <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs">
-                              {category}
-                            </Badge>
-                          ))}
-                        </div>
-                      </CardContent>
+              <Card className="overflow-hidden transition-all hover:shadow-lg h-auto sm:h-[240px]">
+                <div 
+                  className={`relative cursor-pointer flex flex-row h-full`} 
+                  onClick={() => handleArticleClick(article.link)}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleArticleClick(article.link)}
+                  aria-label={`記事: ${article.title}`}
+                >
+                  <div className="w-[100px] h-full relative flex-shrink-0">
+                    <img
+                      src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
+                      alt={article.title}
+                      className={`object-cover w-full h-full ${readArticles.includes(article.link) ? 'opacity-70' : ''}`}
+                    />
+                    <div className="absolute top-1 right-1 flex flex-col gap-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 bg-white/80 hover:bg-white/90"
+                              onClick={(e) => handleToggleFavorite(article, e)}
+                              aria-label={favoriteArticles.includes(article.link) ? "お気に入りから削除" : "お気に入りに追加"}
+                            >
+                              {favoriteArticles.includes(article.link) ? (
+                                <Star className="h-3 w-3 text-yellow-500" />
+                              ) : (
+                                <StarOff className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>お気に入り{favoriteArticles.includes(article.link) ? 'から削除' : 'に追加'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-6 w-6 ${loadingSummaries[article.link] ? 'bg-primary/20 hover:bg-primary/30' : 'bg-white/80 hover:bg-white/90'}`}
+                              onClick={(e) => handleSummarize(article, e)}
+                              disabled={loadingSummaries[article.link]}
+                              aria-label={loadingSummaries[article.link] ? "AI要約を生成中..." : "AI要約を生成"}
+                            >
+                              {loadingSummaries[article.link] ? (
+                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              ) : (
+                                <Wand2 className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{loadingSummaries[article.link] ? "AI要約を生成中..." : "AI要約を生成"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
-                </Card>
-                {summaries[article.link] && (
-                  <HoverCardContent 
-                    side={isMobile ? "bottom" : "right"} 
-                    align={isMobile ? "center" : "start"} 
-                    className="w-[calc(100vw-32px)] sm:w-80 max-h-[300px] overflow-auto"
-                  >
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-semibold">AI要約</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {summaries[article.link]}
+                  <div className="flex-1 min-w-0">
+                    <CardContent className="p-2 sm:p-3">
+                      <div className="text-xs text-muted-foreground mb-1 truncate">
+                        {article.feedName || feedNameMap[article.feedUrl] || article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
+                      </div>
+                      <CardTitle className="text-sm sm:text-base mb-1 line-clamp-2 sm:line-clamp-4">
+                        {article.title}
+                      </CardTitle>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-3">
+                        {article.description || "説明はありません"}
                       </p>
-                    </div>
-                  </HoverCardContent>
-                )}
-              </HoverCard>
+                      <div className="flex flex-wrap gap-1 mt-1 sm:mt-2">
+                        {article.categories?.slice(0, 2).map((category, i) => (
+                          <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs">
+                            {category}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </div>
+                </div>
+              </Card>
             </div>
           ))}
         </div>

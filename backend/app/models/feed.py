@@ -58,7 +58,7 @@ class AiSummary(Base):
     __tablename__ = "ai_summaries"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=False)
+    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=True)
     article_link = Column(String(512), nullable=False)
     summary = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
