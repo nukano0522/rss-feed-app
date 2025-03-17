@@ -211,12 +211,9 @@ export const useRssFeed = (): UseRssFeedReturn => {
   // お気に入り登録・解除の処理
   const toggleFavorite = async (article: Article): Promise<void> => {
     try {
-      const feed = feeds.find(f => f.url === article.feedUrl);
-      if (!feed) {
-        console.error('Feed not found for article:', article);
-        return;
-      }
-
+      // 外部記事かどうかを判定
+      const isExternal = article.feedUrl === 'external://articles';
+      
       if (favoriteArticles.includes(article.link)) {
         // お気に入り解除
         await feedsApi.removeFavoriteArticle(article.link);
@@ -226,17 +223,40 @@ export const useRssFeed = (): UseRssFeedReturn => {
         // お気に入り登録
         await feedsApi.addFavoriteArticle(article);
         setFavoriteArticles(prev => [...prev, article.link]);
-        setFavoriteArticlesList(prev => [...prev, {
-          title: article.title,
-          link: article.link,
-          description: article.description || '',
-          image: article.image || '',
-          categories: article.categories || [],
-          published: new Date(),
-          feedUrl: feed.url,
-          feedName: feed.name,
-          feed_id: feed.id
-        }]);
+        
+        // 外部記事の場合はfeedの情報を設定しない
+        if (isExternal) {
+          setFavoriteArticlesList(prev => [...prev, {
+            title: article.title,
+            link: article.link,
+            description: article.description || '',
+            image: article.image || '',
+            categories: article.categories || [],
+            published: new Date(),
+            feedUrl: 'external://articles',
+            feedName: '外部記事',
+            feed_id: null
+          }]);
+        } else {
+          // 通常のRSSフィード記事の場合
+          const feed = feeds.find(f => f.url === article.feedUrl);
+          if (!feed) {
+            console.error('Feed not found for article:', article);
+            return;
+          }
+          
+          setFavoriteArticlesList(prev => [...prev, {
+            title: article.title,
+            link: article.link,
+            description: article.description || '',
+            image: article.image || '',
+            categories: article.categories || [],
+            published: new Date(),
+            feedUrl: feed.url,
+            feedName: feed.name,
+            feed_id: feed.id
+          }]);
+        }
       }
 
       // お気に入り記事の一覧を再取得して最新の状態に更新
@@ -248,6 +268,22 @@ export const useRssFeed = (): UseRssFeedReturn => {
       
       // お気に入り記事の完全なデータを更新
       setFavoriteArticlesList(favoriteArticlesData.map(article => {
+        // 外部記事の場合
+        if (article.is_external) {
+          return {
+            title: article.article_title,
+            link: article.article_link,
+            description: article.article_description || '',
+            image: article.article_image || '',
+            categories: article.article_categories || [],
+            published: new Date(article.favorited_at),
+            feedUrl: 'external://articles',
+            feedName: '外部記事',
+            feed_id: null
+          };
+        }
+        
+        // 通常のRSSフィード記事の場合
         const feed = feeds.find(f => f.id === article.feed_id);
         return {
           title: article.article_title,

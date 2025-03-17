@@ -52,7 +52,8 @@ class FavoriteArticleBase(BaseModel):
     article_description: Optional[str] = None
     article_image: Optional[str] = None
     article_categories: Optional[List[str]] = []
-    feed_id: int
+    feed_id: Optional[int] = None
+    is_external: bool = False
 
 
 class FavoriteArticleCreate(FavoriteArticleBase):
@@ -69,7 +70,7 @@ class FavoriteArticle(FavoriteArticleBase):
 
 
 class AiSummaryBase(BaseModel):
-    feed_id: int
+    feed_id: Optional[int] = None
     article_link: str
 
 

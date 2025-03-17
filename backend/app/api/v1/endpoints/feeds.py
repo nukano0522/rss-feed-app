@@ -11,6 +11,7 @@ from app import models, schemas
 from base64 import b64decode
 import aiohttp
 from app.utils.content_extractor import ContentExtractor
+from app.utils.metadata_extractor import MetadataExtractor
 from app.utils.summarizer import ArticleSummarizer
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,10 @@ router = APIRouter()
 # 依存性注入のための関数
 def get_content_extractor() -> ContentExtractor:
     return ContentExtractor()
+
+
+def get_metadata_extractor() -> MetadataExtractor:
+    return MetadataExtractor()
 
 
 def get_summarizer() -> ArticleSummarizer:
@@ -190,16 +195,18 @@ async def add_favorite_article(
 ):
     """記事をお気に入りに追加"""
     try:
-        # フィードの存在確認
-        feed_result = await session.execute(
-            select(models.Feed).filter(models.Feed.id == article.feed_id)
-        )
-        feed = feed_result.scalar_one_or_none()
-        if not feed:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="指定されたフィードが見つかりません",
+        # 外部記事の場合はフィード確認をスキップ
+        if article.feed_id is not None and not article.is_external:
+            # フィードの存在確認
+            feed_result = await session.execute(
+                select(models.Feed).filter(models.Feed.id == article.feed_id)
             )
+            feed = feed_result.scalar_one_or_none()
+            if not feed:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="指定されたフィードが見つかりません",
+                )
 
         new_favorite = models.FavoriteArticle(
             article_link=article.article_link,
@@ -209,6 +216,7 @@ async def add_favorite_article(
             article_categories=article.article_categories or [],
             feed_id=article.feed_id,
             user_id=user.id,
+            is_external=article.is_external,
         )
         session.add(new_favorite)
         await session.commit()
@@ -299,13 +307,19 @@ async def summarize_article(
     content_extractor: ContentExtractor = Depends(get_content_extractor),
     summarizer: ArticleSummarizer = Depends(get_summarizer),
 ):
+    # 外部記事の場合は feed_id を None として扱う
+    feed_id = None if article.feed_id == 0 else article.feed_id
+
     # 既存の要約をチェック
-    existing_summary = await session.execute(
-        select(models.AiSummary).where(
-            models.AiSummary.feed_id == article.feed_id,
-            models.AiSummary.article_link == article.article_link,
-        )
+    query = select(models.AiSummary).where(
+        models.AiSummary.article_link == article.article_link
     )
+    if feed_id is not None:
+        query = query.where(models.AiSummary.feed_id == feed_id)
+    else:
+        query = query.where(models.AiSummary.feed_id.is_(None))
+
+    existing_summary = await session.execute(query)
     summary = existing_summary.scalar_one_or_none()
     if summary:
         return summary
@@ -326,7 +340,7 @@ async def summarize_article(
 
         # 要約をDBに保存
         new_summary = models.AiSummary(
-            feed_id=article.feed_id,
+            feed_id=feed_id,
             article_link=article.article_link,
             summary=summary_text,
         )
@@ -339,3 +353,44 @@ async def summarize_article(
     except Exception as e:
         logger.error(f"Error summarizing article: {str(e)}")
         raise HTTPException(status_code=500, detail="記事の要約に失敗しました")
+
+
+@router.get("/extract-metadata")
+async def extract_metadata(
+    url: str = Query(..., description="メタデータを抽出するURL"),
+    user: User = Depends(current_active_user),
+    metadata_extractor: MetadataExtractor = Depends(get_metadata_extractor),
+):
+    """URLからメタデータ（タイトル、説明、画像など）を抽出"""
+    try:
+        # 記事の取得
+        async with aiohttp.ClientSession() as client:
+            async with client.get(url) as response:
+                if response.status != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"URLにアクセスできません: {response.status}",
+                    )
+                html = await response.text()
+
+        # メタデータの抽出
+        metadata = metadata_extractor.extract_metadata(html, url)
+
+        return {
+            "title": metadata.get("title", ""),
+            "description": metadata.get("description", ""),
+            "image": metadata.get("image", ""),
+            "categories": metadata.get("keywords", []),
+        }
+    except aiohttp.ClientError as e:
+        logger.error(f"URL取得エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"URLにアクセスできません: {str(e)}",
+        )
+    except Exception as e:
+        logger.error(f"メタデータ抽出エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"メタデータの抽出に失敗しました: {str(e)}",
+        )

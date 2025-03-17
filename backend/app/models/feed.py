@@ -39,7 +39,7 @@ class FavoriteArticle(Base):
     __tablename__ = "favorite_articles"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=False)
+    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=True)
     article_link = Column(String(767), nullable=False)
     article_title = Column(String(512), nullable=False)
     article_description = Column(Text, nullable=True)
@@ -47,6 +47,7 @@ class FavoriteArticle(Base):
     article_categories = Column(JSON, nullable=True)
     favorited_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    is_external = Column(Boolean, default=False)
 
     __table_args__ = (
         UniqueConstraint("article_link", "user_id", name="uq_favorite_article_user"),
@@ -57,7 +58,7 @@ class AiSummary(Base):
     __tablename__ = "ai_summaries"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=False)
+    feed_id = Column(Integer, ForeignKey("feeds.id"), nullable=True)
     article_link = Column(String(512), nullable=False)
     summary = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

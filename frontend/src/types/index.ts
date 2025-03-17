@@ -26,7 +26,7 @@ export interface Article {
     feedName?: string;
     image?: string;
     categories?: string[];
-    feed_id?: number;
+    feed_id?: number | null;
 }
 
 export interface RssEntry {
@@ -52,7 +52,8 @@ export interface FavoriteArticleBase {
     article_description: string | null;
     article_image: string | null;
     article_categories: string[];
-    feed_id: number;
+    feed_id?: number | null;
+    is_external?: boolean;
 }
 
 // FavoriteArticleCreate に相当する（リクエスト用）
@@ -63,6 +64,13 @@ export interface FavoriteArticleData extends FavoriteArticleBase {
     id: number;
     user_id: number;
     favorited_at: Date;
+}
+
+export interface MetadataResponse {
+    title: string;
+    description: string;
+    image: string;
+    categories: string[];
 }
 
 export type MenuType = 'articles' | 'feeds' | 'favorites'; 

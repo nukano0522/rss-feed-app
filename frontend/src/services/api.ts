@@ -77,13 +77,15 @@ export const feedsApi = {
     article_description: article.description || '',
     article_image: article.image || '',
     article_categories: article.categories || [],
-    feed_id: article.feed_id
+    feed_id: article.feedUrl === 'external://articles' ? null : article.feed_id,
+    is_external: article.feedUrl === 'external://articles'
     } as FavoriteArticleRequest),
   removeFavoriteArticle: (articleLink: string) => api.delete(`/feeds/favorite-articles/${btoa(articleLink)}`),
   summarizeArticle: (article: Article, feedId: number) => api.post('/feeds/articles/summarize', {
     article_link: article.link,
     feed_id: feedId
   }),
+  extractMetadata: (url: string) => api.get(`/feeds/extract-metadata?url=${encodeURIComponent(url)}`),
 };
 
 export default api; 

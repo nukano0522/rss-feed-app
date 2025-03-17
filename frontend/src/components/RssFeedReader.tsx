@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FeedManager from './FeedManager';
 import ArticleList from './ArticleList';
+import FavoritesTab from './FavoritesTab';
 import Navigation from './Navigation';
 import { useRssFeed } from '../hooks/useRssFeed';
 import { MenuType } from '../types';
@@ -63,7 +64,7 @@ const RssFeedReader: React.FC = () => {
               onEditFeed={handleEditFeed}
             />
           ) : selectedMenu === 'favorites' ? (
-            <ArticleList 
+            <FavoritesTab 
               articles={favoriteArticlesList}
               readArticles={readArticles}
               feeds={feeds}
