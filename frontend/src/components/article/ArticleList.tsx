@@ -6,7 +6,6 @@ import {
   ArticleCard,
   ArticleFilter,
   ArticleListSkeleton,
-  MobileFilterSheet,
   NoArticlesFound,
   SummaryDialog
 } from './';
@@ -162,8 +161,8 @@ const ArticleList: React.FC<ArticleListProps> = ({
 
       {/* モバイル向けフィルターボタン */}
       <div className="md:hidden flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold"></h2>
-        <MobileFilterSheet
+        <h2 className="text-xl font-bold">記事一覧</h2>
+        <ArticleFilter
           isOpen={showFilterSheet}
           onOpenChange={setShowFilterSheet}
           feeds={feeds}
@@ -171,6 +170,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
           onFilterChange={setSelectedFeeds}
           readFilter={readFilter}
           onReadFilterChange={setReadFilter}
+          isMobile={true}
         />
       </div>
 
@@ -182,6 +182,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
           onFilterChange={setSelectedFeeds}
           readFilter={readFilter}
           onReadFilterChange={setReadFilter}
+          isMobile={false}
         />
       </div>
 
