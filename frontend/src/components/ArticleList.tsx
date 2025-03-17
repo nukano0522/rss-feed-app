@@ -4,8 +4,6 @@ import { Article } from '../types';
 import {
   Card,
   CardContent,
-  CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +14,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-
 import {
   Dialog,
   DialogContent,
@@ -146,6 +143,192 @@ const ArticleFilter: React.FC<ArticleFilterProps> = ({
   );
 };
 
+// 記事が見つからない場合のコンポーネント
+const NoArticlesFound: React.FC<{
+  selectedFeeds: string[];
+  readFilter: 'all' | 'read' | 'unread';
+  onClearFilters: () => void;
+}> = ({ selectedFeeds, readFilter, onClearFilters }) => {
+  const hasFilters = useMemo(() => 
+    selectedFeeds.length > 0 || readFilter !== 'all',
+    [selectedFeeds.length, readFilter]
+  );
+  
+  return (
+    <div className="text-center py-12">
+      <h3 className="text-xl font-medium mb-2">記事が見つかりません</h3>
+      <p className="text-muted-foreground">フィルター条件を変更してみてください</p>
+      {hasFilters && (
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={onClearFilters}
+        >
+          <X className="h-4 w-4 mr-2" />
+          フィルターをクリア
+        </Button>
+      )}
+    </div>
+  );
+};
+
+// 記事カードコンポーネント
+interface ArticleCardProps {
+  article: Article;
+  readArticles: string[];
+  favoriteArticles: string[];
+  feedImageMap: Record<string, string | null>;
+  feedNameMap: Record<string, string>;
+  loadingSummaries: Record<string, boolean>;
+  onArticleClick: (link: string) => void;
+  onToggleFavorite: (article: Article, e: React.MouseEvent) => void;
+  onSummarize: (article: Article, e: React.MouseEvent) => void;
+}
+
+const ArticleCard: React.FC<ArticleCardProps> = ({
+  article,
+  readArticles,
+  favoriteArticles,
+  feedImageMap,
+  feedNameMap,
+  loadingSummaries,
+  onArticleClick,
+  onToggleFavorite,
+  onSummarize
+}) => {
+  return (
+    <Card className="overflow-hidden transition-all hover:shadow-lg h-auto sm:h-[240px]">
+      <div 
+        className="relative cursor-pointer flex flex-row h-full" 
+        onClick={() => onArticleClick(article.link)}
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && onArticleClick(article.link)}
+        aria-label={`記事: ${article.title}`}
+      >
+        <div className="w-[100px] h-full relative flex-shrink-0">
+          <img
+            src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
+            alt={article.title}
+            className={`object-cover w-full h-full ${readArticles.includes(article.link) ? 'opacity-70' : ''}`}
+          />
+          <div className="absolute top-1 right-1 flex flex-col gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 bg-white/80 hover:bg-white/90"
+                    onClick={(e) => onToggleFavorite(article, e)}
+                    aria-label={favoriteArticles.includes(article.link) ? "お気に入りから削除" : "お気に入りに追加"}
+                  >
+                    {favoriteArticles.includes(article.link) ? (
+                      <Star className="h-3 w-3 text-yellow-500" />
+                    ) : (
+                      <StarOff className="h-3 w-3" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>お気に入り{favoriteArticles.includes(article.link) ? 'から削除' : 'に追加'}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-6 w-6 ${loadingSummaries[article.link] ? 'bg-primary/20 hover:bg-primary/30' : 'bg-white/80 hover:bg-white/90'}`}
+                    onClick={(e) => onSummarize(article, e)}
+                    disabled={loadingSummaries[article.link]}
+                    aria-label={loadingSummaries[article.link] ? "AI要約を生成中..." : "AI要約を生成"}
+                  >
+                    {loadingSummaries[article.link] ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <Wand2 className="h-3 w-3" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{loadingSummaries[article.link] ? "AI要約を生成中..." : "AI要約を生成"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <CardContent className="p-2 sm:p-3">
+            <div className="text-xs text-muted-foreground mb-1 truncate">
+              {article.feedName || feedNameMap[article.feedUrl] || article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
+            </div>
+            <CardTitle className="text-sm sm:text-base mb-1 line-clamp-2 sm:line-clamp-4">
+              {article.title}
+            </CardTitle>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-3">
+              {article.description || "説明はありません"}
+            </p>
+            <div className="flex flex-wrap gap-1 mt-1 sm:mt-2">
+              {article.categories?.slice(0, 2).map((category, i) => (
+                <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs">
+                  {category}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+// 要約ダイアログコンポーネント
+interface SummaryDialogProps {
+  article: Article | null;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  summary: string | undefined;
+  isLoading: boolean;
+}
+
+const SummaryDialog: React.FC<SummaryDialogProps> = ({
+  article,
+  isOpen,
+  onOpenChange,
+  summary,
+  isLoading
+}) => {
+  if (!article) return null;
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">AI要約</DialogTitle>
+        </DialogHeader>
+        <div className="mt-4">
+          <h3 className="text-base font-medium mb-2">{article.title}</h3>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            </div>
+          ) : (
+            <div className="bg-muted/50 p-4 rounded-md">
+              <p className="text-sm whitespace-pre-line">
+                {summary || "要約を生成できませんでした。"}
+              </p>
+            </div>
+          )}
+          <div className="mt-4 text-xs text-muted-foreground">
+            <p>元記事: <a href={article.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{article.link}</a></p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const ArticleList: React.FC<ArticleListProps> = ({
   articles,
   readArticles,
@@ -178,21 +361,21 @@ const ArticleList: React.FC<ArticleListProps> = ({
     };
   }, []);
 
-  const feedImageMap = useMemo(() => {
+  const feedImageMap = useMemo<Record<string, string | null>>(() => {
     return feeds.reduce((acc, feed) => {
       acc[feed.url] = feed.default_image;
       return acc;
     }, {} as Record<string, string | null>);
   }, [feeds]);
 
-  const feedIdMap = useMemo(() => {
+  const feedIdMap = useMemo<Record<string, number>>(() => {
     return feeds.reduce((acc, feed) => {
       acc[feed.url] = feed.id;
       return acc;
     }, {} as Record<string, number>);
   }, [feeds]);
 
-  const feedNameMap = useMemo(() => {
+  const feedNameMap = useMemo<Record<string, string>>(() => {
     return feeds.reduce((acc, feed) => {
       acc[feed.url] = feed.name;
       return acc;
@@ -201,13 +384,15 @@ const ArticleList: React.FC<ArticleListProps> = ({
 
   const handleToggleFavorite = (article: Article, e: React.MouseEvent) => {
     e.stopPropagation();
-    const feedId = feedIdMap[article.feedUrl];
-    if (feedId) {
-      onToggleFavorite({
-        ...article,
-        feed_id: feedId
-      });
-    }
+    
+    // 外部記事の場合は feedId を null として扱う
+    const isExternal = article.feedUrl === 'external://articles';
+    const feedId = isExternal ? null : feedIdMap[article.feedUrl];
+    
+    onToggleFavorite({
+      ...article,
+      feed_id: feedId
+    });
   };
 
   const handleSummarize = async (article: Article, e: React.MouseEvent) => {
@@ -216,7 +401,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
     // 現在の記事を設定
     setCurrentSummaryArticle(article);
     
-    // 既に要約がある場合はダイアログを表示
+    // 既に要約がある場合はダイアログを表示して終了
     if (summaries[article.link]) {
       setShowSummaryDialog(true);
       return;
@@ -228,15 +413,23 @@ const ArticleList: React.FC<ArticleListProps> = ({
     
     // 処理中の状態を設定
     setLoadingSummaries(prev => ({ ...prev, [article.link]: true }));
+    setShowSummaryDialog(true); // 処理中もダイアログを表示
     
     try {
       const response = await feedsApi.summarizeArticle(article, feedId || 0);
-      setSummaries(prev => ({ ...prev, [article.link]: response.data.summary }));
-      // 要約が完了したらダイアログを表示
-      setShowSummaryDialog(true);
+      
+      if (response.data && response.data.summary) {
+        setSummaries(prev => ({ ...prev, [article.link]: response.data.summary }));
+      } else {
+        throw new Error('要約データが取得できませんでした');
+      }
     } catch (error) {
       console.error('Error getting summary:', error);
-      // エラー時にトースト通知などを表示することも検討
+      // エラーメッセージを設定（実際のUIには表示されませんが、将来的に表示する場合に備えて）
+      setSummaries(prev => ({ 
+        ...prev, 
+        [article.link]: '要約の生成中にエラーが発生しました。後でもう一度お試しください。' 
+      }));
     } finally {
       setLoadingSummaries(prev => ({ ...prev, [article.link]: false }));
     }
@@ -304,32 +497,13 @@ const ArticleList: React.FC<ArticleListProps> = ({
   return (
     <div className="container mx-auto px-2 sm:px-4 md:px-6">
       {/* AI要約ダイアログ */}
-      {currentSummaryArticle && (
-        <Dialog open={showSummaryDialog} onOpenChange={setShowSummaryDialog}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold">AI要約</DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              <h3 className="text-base font-medium mb-2">{currentSummaryArticle.title}</h3>
-              {loadingSummaries[currentSummaryArticle.link] ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                </div>
-              ) : (
-                <div className="bg-muted/50 p-4 rounded-md">
-                  <p className="text-sm whitespace-pre-line">
-                    {summaries[currentSummaryArticle.link] || "要約を生成できませんでした。"}
-                  </p>
-                </div>
-              )}
-              <div className="mt-4 text-xs text-muted-foreground">
-                <p>元記事: <a href={currentSummaryArticle.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSummaryArticle.link}</a></p>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <SummaryDialog
+        article={currentSummaryArticle}
+        isOpen={showSummaryDialog}
+        onOpenChange={setShowSummaryDialog}
+        summary={currentSummaryArticle ? summaries[currentSummaryArticle.link] : undefined}
+        isLoading={currentSummaryArticle ? loadingSummaries[currentSummaryArticle.link] : false}
+      />
 
       {/* モバイル向けフィルターボタン */}
       <div className="md:hidden flex justify-between items-center mb-4">
@@ -439,111 +613,29 @@ const ArticleList: React.FC<ArticleListProps> = ({
       </div>
 
       {filteredArticles.length === 0 ? (
-        <div className="text-center py-12">
-          <h3 className="text-xl font-medium mb-2">記事が見つかりません</h3>
-          <p className="text-muted-foreground">フィルター条件を変更してみてください</p>
-          {(selectedFeeds.length > 0 || readFilter !== 'all') && (
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => {
-                setSelectedFeeds([]);
-                setReadFilter('all');
-              }}
-            >
-              <X className="h-4 w-4 mr-2" />
-              フィルターをクリア
-            </Button>
-          )}
-        </div>
+        <NoArticlesFound 
+          selectedFeeds={selectedFeeds}
+          readFilter={readFilter}
+          onClearFilters={() => {
+            setSelectedFeeds([]);
+            setReadFilter('all');
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {filteredArticles.map((article, index) => (
             <div key={article.link + index}>
-              <Card className="overflow-hidden transition-all hover:shadow-lg h-auto sm:h-[240px]">
-                <div 
-                  className={`relative cursor-pointer flex flex-row h-full`} 
-                  onClick={() => handleArticleClick(article.link)}
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && handleArticleClick(article.link)}
-                  aria-label={`記事: ${article.title}`}
-                >
-                  <div className="w-[100px] h-full relative flex-shrink-0">
-                    <img
-                      src={article.image || feedImageMap[article.feedUrl] || '/default-image.jpg'}
-                      alt={article.title}
-                      className={`object-cover w-full h-full ${readArticles.includes(article.link) ? 'opacity-70' : ''}`}
-                    />
-                    <div className="absolute top-1 right-1 flex flex-col gap-1">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 bg-white/80 hover:bg-white/90"
-                              onClick={(e) => handleToggleFavorite(article, e)}
-                              aria-label={favoriteArticles.includes(article.link) ? "お気に入りから削除" : "お気に入りに追加"}
-                            >
-                              {favoriteArticles.includes(article.link) ? (
-                                <Star className="h-3 w-3 text-yellow-500" />
-                              ) : (
-                                <StarOff className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>お気に入り{favoriteArticles.includes(article.link) ? 'から削除' : 'に追加'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-6 w-6 ${loadingSummaries[article.link] ? 'bg-primary/20 hover:bg-primary/30' : 'bg-white/80 hover:bg-white/90'}`}
-                              onClick={(e) => handleSummarize(article, e)}
-                              disabled={loadingSummaries[article.link]}
-                              aria-label={loadingSummaries[article.link] ? "AI要約を生成中..." : "AI要約を生成"}
-                            >
-                              {loadingSummaries[article.link] ? (
-                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              ) : (
-                                <Wand2 className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{loadingSummaries[article.link] ? "AI要約を生成中..." : "AI要約を生成"}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardContent className="p-2 sm:p-3">
-                      <div className="text-xs text-muted-foreground mb-1 truncate">
-                        {article.feedName || feedNameMap[article.feedUrl] || article.feedUrl} | {article.published ? new Date(article.published).toLocaleDateString() : '日付なし'}
-                      </div>
-                      <CardTitle className="text-sm sm:text-base mb-1 line-clamp-2 sm:line-clamp-4">
-                        {article.title}
-                      </CardTitle>
-                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-3">
-                        {article.description || "説明はありません"}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-1 sm:mt-2">
-                        {article.categories?.slice(0, 2).map((category, i) => (
-                          <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs">
-                            {category}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </div>
-                </div>
-              </Card>
+              <ArticleCard
+                article={article}
+                readArticles={readArticles}
+                favoriteArticles={favoriteArticles}
+                feedImageMap={feedImageMap}
+                feedNameMap={feedNameMap}
+                loadingSummaries={loadingSummaries}
+                onArticleClick={handleArticleClick}
+                onToggleFavorite={handleToggleFavorite}
+                onSummarize={handleSummarize}
+              />
             </div>
           ))}
         </div>
