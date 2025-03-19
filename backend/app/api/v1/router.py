@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import feeds
+from app.api.v1.endpoints import feeds, dynamodb_test
 from app.auth.auth import auth_backend, fastapi_users
 from app.schemas.user import UserRead, UserCreate, UserUpdate
 from datetime import datetime
@@ -38,3 +38,6 @@ api_router.include_router(
 
 # フィード関連のルーター
 api_router.include_router(feeds.router, prefix="/feeds", tags=["RSSフィード"])
+
+# DynamoDBテスト用ルーターを登録
+api_router.include_router(dynamodb_test.router, prefix="/dynamodb", tags=["dynamodb"])
