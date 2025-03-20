@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 # ロガーの設定
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -41,21 +41,7 @@ def get_application():
             app.include_router(api_router, prefix="/api/v1")
             logger.info("APIルーターが正常に登録されました")
 
-            # DynamoDBテーブルの初期化
-            use_dynamodb = os.getenv("USE_DYNAMODB", "false").lower() == "true"
-            if use_dynamodb:
-                try:
-                    from app.dynamodb.init_tables import init_tables
-
-                    init_tables()
-                    logger.info("DynamoDBテーブルが正常に初期化されました")
-                except Exception as dynamo_error:
-                    logger.error(
-                        f"DynamoDBテーブル初期化中にエラーが発生しました: {str(dynamo_error)}"
-                    )
-                    # DynamoDBエラーでもアプリケーションは起動させる
-
-            # データベース初期化
+            # SQLデータベース初期化
             try:
                 from app.database import engine, Base, get_async_session
                 from app import models
@@ -64,12 +50,26 @@ def get_application():
 
                 async with engine.begin() as conn:
                     await conn.run_sync(Base.metadata.create_all)
-                logger.info("データベーステーブルが正常に初期化されました")
+                logger.info("SQLデータベーステーブルが正常に初期化されました")
             except Exception as db_error:
                 logger.error(
-                    f"データベース初期化中にエラーが発生しました: {str(db_error)}"
+                    f"SQLデータベース初期化中にエラーが発生しました: {str(db_error)}"
                 )
                 # データベースエラーでもアプリケーションは起動させる
+
+            # DynamoDBテーブル初期化
+            try:
+                from app.dynamodb.init_tables import init_tables
+
+                logger.info("DynamoDBテーブルの初期化を開始します...")
+                result = await init_tables()
+                logger.info(f"DynamoDBテーブル初期化結果: {result}")
+            except Exception as dynamo_error:
+                logger.error(
+                    f"DynamoDBテーブル初期化中にエラーが発生しました: {str(dynamo_error)}"
+                )
+                # エラーでもアプリケーションは起動させる
+
         except Exception as e:
             logger.error(f"アプリケーション起動中にエラーが発生しました: {str(e)}")
             # エラーが発生してもアプリケーションは起動させる

@@ -1,187 +1,170 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Optional
-from botocore.exceptions import ClientError
-from app.dynamodb.client import get_dynamodb_client
-from app.schemas.feed import FeedCreate, FeedUpdate
+from typing import List, Optional, Dict, Any
+
+from app.schemas.feed import Feed, FeedCreate, FeedUpdate
+from app.dynamodb.client import get_dynamodb_resource
 
 logger = logging.getLogger(__name__)
 
-TABLE_NAME = "feeds"
-
 
 class FeedRepository:
-    """DynamoDBを使用したフィードリポジトリ"""
+    """フィードリポジトリ"""
 
     def __init__(self):
-        self.client = get_dynamodb_client()
+        self.table_name = "feeds"
+        self.resource = get_dynamodb_resource()
+        self.table = self.resource.Table(self.table_name)
 
-    async def get_all_feeds(self) -> List[dict]:
-        """全てのフィードを取得する"""
+    async def get_all_feeds(self) -> List[Feed]:
+        """全フィードを取得"""
         try:
-            response = self.client.scan(TableName=TABLE_NAME)
-            return self._convert_dynamodb_items_to_dict(response.get("Items", []))
-        except ClientError as e:
-            logger.error(f"フィード取得エラー: {str(e)}")
+            # すべてのアイテムを取得
+            response = self.table.scan()
+
+            feeds = []
+            for item in response.get("Items", []):
+                feed = Feed(
+                    id=item.get("id"),
+                    name=item.get("name"),
+                    url=item.get("url"),
+                    enabled=item.get("enabled", True),
+                    default_image=item.get("default_image"),
+                    created_at=item.get("created_at"),
+                )
+                feeds.append(feed)
+
+            return feeds
+        except Exception as e:
+            logger.error(f"フィード全件取得中にエラーが発生しました: {str(e)}")
             raise
 
-    async def get_feed_by_id(self, feed_id: str) -> Optional[dict]:
-        """IDでフィードを取得する"""
+    async def get_feed_by_id(self, feed_id: str) -> Optional[Feed]:
+        """IDによるフィード検索"""
         try:
-            response = self.client.get_item(
-                TableName=TABLE_NAME, Key={"id": {"S": feed_id}}
-            )
+            # IDでアイテムを取得
+            response = self.table.get_item(Key={"id": feed_id})
+
             item = response.get("Item")
             if not item:
                 return None
-            return self._convert_dynamodb_item_to_dict(item)
-        except ClientError as e:
-            logger.error(f"フィード取得エラー (ID: {feed_id}): {str(e)}")
+
+            feed = Feed(
+                id=item.get("id"),
+                name=item.get("name"),
+                url=item.get("url"),
+                enabled=item.get("enabled", True),
+                default_image=item.get("default_image"),
+                created_at=item.get("created_at"),
+            )
+
+            return feed
+        except Exception as e:
+            logger.error(
+                f"フィードID検索中にエラーが発生しました (ID: {feed_id}): {str(e)}"
+            )
             raise
 
-    async def create_feed(self, feed: FeedCreate) -> dict:
-        """フィードを作成する"""
+    async def create_feed(self, feed: FeedCreate) -> Feed:
+        """フィードを作成"""
         try:
-            # UUIDを生成
+            # 新しいIDを生成
             feed_id = str(uuid.uuid4())
             now = datetime.utcnow().isoformat()
 
+            # アイテムを作成
             item = {
-                "id": {"S": feed_id},
-                "name": {"S": feed.name},
-                "url": {"S": feed.url},
-                "enabled": {"BOOL": feed.enabled},
-                "created_at": {"S": now},
+                "id": feed_id,
+                "name": feed.name,
+                "url": feed.url,
+                "enabled": feed.enabled,
+                "default_image": feed.default_image,
+                "created_at": now,
             }
 
-            if feed.default_image:
-                item["default_image"] = {"S": feed.default_image}
+            # アイテムを追加
+            self.table.put_item(Item=item)
 
-            # DynamoDBに保存
-            self.client.put_item(TableName=TABLE_NAME, Item=item)
-
-            # 作成したアイテムを返す
-            return self._convert_dynamodb_item_to_dict(item)
-        except ClientError as e:
-            logger.error(f"フィード作成エラー: {str(e)}")
+            # スキーマに合わせたデータを返す
+            return Feed(
+                id=feed_id,
+                name=feed.name,
+                url=feed.url,
+                enabled=feed.enabled,
+                default_image=feed.default_image,
+                created_at=now,
+            )
+        except Exception as e:
+            logger.error(f"フィード作成中にエラーが発生しました: {str(e)}")
             raise
 
-    async def update_feed(
-        self, feed_id: str, feed_update: FeedUpdate
-    ) -> Optional[dict]:
-        """フィードを更新する"""
+    async def update_feed(self, feed_id: str, feed_update: FeedUpdate) -> Feed:
+        """フィードを更新"""
         try:
-            # 更新するフィールドを準備
-            update_expression_parts = []
-            expression_attribute_names = {}
-            expression_attribute_values = {}
+            # 既存のフィードを取得
+            response = self.table.get_item(Key={"id": feed_id})
 
-            update_data = feed_update.dict(exclude_unset=True)
+            item = response.get("Item")
+            if not item:
+                raise ValueError(f"フィードが見つかりません (ID: {feed_id})")
 
-            if not update_data:
-                # 更新するデータがない場合は現在のデータを返す
-                return await self.get_feed_by_id(feed_id)
+            # 更新するフィールドを設定
+            update_data = {}
+            update_expressions = []
+            expression_values = {}
 
-            # 更新するフィールドごとに更新式を構築
-            for key, value in update_data.items():
-                update_expression_parts.append(f"#{key} = :{key}")
-                expression_attribute_names[f"#{key}"] = key
+            # 更新されたフィールドのみを処理
+            for field, value in feed_update.dict(exclude_unset=True).items():
+                if value is not None:  # Noneでない値のみを更新
+                    update_expressions.append(f"#{field} = :{field}")
+                    update_data[f"#{field}"] = field
+                    expression_values[f":{field}"] = value
 
-                # 型に応じた値の設定
-                if isinstance(value, bool):
-                    expression_attribute_values[f":{key}"] = {"BOOL": value}
-                elif value is None:
-                    # Noneの場合は削除
-                    update_expression_parts[-1] = f"REMOVE #{key}"
-                    del expression_attribute_values[f":{key}"]
-                else:
-                    expression_attribute_values[f":{key}"] = {"S": str(value)}
+            if not update_expressions:
+                # 更新なしの場合は既存のフィードを返す
+                return Feed(**item)
 
-            update_expression = "SET " + ", ".join(update_expression_parts)
+            # 更新式を構築
+            update_expression = "SET " + ", ".join(update_expressions)
 
-            # 更新実行
-            self.client.update_item(
-                TableName=TABLE_NAME,
-                Key={"id": {"S": feed_id}},
+            # アイテムを更新
+            response = self.table.update_item(
+                Key={"id": feed_id},
                 UpdateExpression=update_expression,
-                ExpressionAttributeNames=expression_attribute_names,
-                ExpressionAttributeValues=expression_attribute_values,
+                ExpressionAttributeNames=update_data,
+                ExpressionAttributeValues=expression_values,
                 ReturnValues="ALL_NEW",
             )
 
-            # 更新後のアイテムを返す
-            return await self.get_feed_by_id(feed_id)
-        except ClientError as e:
-            logger.error(f"フィード更新エラー (ID: {feed_id}): {str(e)}")
+            updated_item = response.get("Attributes", {})
+
+            # 更新されたフィードを返す
+            return Feed(
+                id=updated_item.get("id"),
+                name=updated_item.get("name"),
+                url=updated_item.get("url"),
+                enabled=updated_item.get("enabled", True),
+                default_image=updated_item.get("default_image"),
+                created_at=updated_item.get("created_at"),
+            )
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(
+                f"フィード更新中にエラーが発生しました (ID: {feed_id}): {str(e)}"
+            )
             raise
 
     async def delete_feed(self, feed_id: str) -> bool:
-        """フィードを削除する"""
+        """フィードを削除"""
         try:
-            self.client.delete_item(TableName=TABLE_NAME, Key={"id": {"S": feed_id}})
+            # アイテムを削除
+            self.table.delete_item(Key={"id": feed_id})
+
             return True
-        except ClientError as e:
-            logger.error(f"フィード削除エラー (ID: {feed_id}): {str(e)}")
+        except Exception as e:
+            logger.error(
+                f"フィード削除中にエラーが発生しました (ID: {feed_id}): {str(e)}"
+            )
             raise
-
-    def _convert_dynamodb_items_to_dict(self, items: List[dict]) -> List[dict]:
-        """DynamoDBのアイテムリストを通常の辞書リストに変換"""
-        return [self._convert_dynamodb_item_to_dict(item) for item in items]
-
-    def _convert_dynamodb_item_to_dict(self, item: dict) -> dict:
-        """DynamoDBのアイテムを通常の辞書に変換"""
-        result = {}
-        for key, value in item.items():
-            # valueの型によって変換方法を変える
-            if "S" in value:
-                result[key] = value["S"]
-            elif "N" in value:
-                # 数値はintまたはfloatに変換
-                try:
-                    num = int(value["N"])
-                except ValueError:
-                    num = float(value["N"])
-                result[key] = num
-            elif "BOOL" in value:
-                result[key] = value["BOOL"]
-            elif "NULL" in value:
-                result[key] = None
-            elif "L" in value:
-                # リストの場合は再帰的に変換
-                result[key] = [
-                    self._convert_dynamodb_value_to_python(v) for v in value["L"]
-                ]
-            elif "M" in value:
-                # マップの場合は再帰的に変換
-                result[key] = {
-                    k: self._convert_dynamodb_value_to_python(v)
-                    for k, v in value["M"].items()
-                }
-            else:
-                # その他の型はそのまま
-                result[key] = value
-        return result
-
-    def _convert_dynamodb_value_to_python(self, value: dict):
-        """DynamoDBの値をPythonの値に変換"""
-        for type_key, actual_value in value.items():
-            if type_key == "S":
-                return actual_value
-            elif type_key == "N":
-                try:
-                    return int(actual_value)
-                except ValueError:
-                    return float(actual_value)
-            elif type_key == "BOOL":
-                return actual_value
-            elif type_key == "NULL":
-                return None
-            elif type_key == "L":
-                return [self._convert_dynamodb_value_to_python(v) for v in actual_value]
-            elif type_key == "M":
-                return {
-                    k: self._convert_dynamodb_value_to_python(v)
-                    for k, v in actual_value.items()
-                }
-        return value

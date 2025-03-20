@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any, Union
 
 
 class FeedBase(BaseModel):
@@ -22,8 +22,10 @@ class FeedUpdate(FeedBase):
 
 
 class Feed(FeedBase):
-    id: int
-    created_at: datetime
+    """互換性のために残すSQLAlchemy向けモデル"""
+
+    id: Union[int, str]  # intまたはstr(UUID)を受け入れる
+    created_at: Union[datetime, str]  # datetimeまたはISOフォーマット文字列を受け入れる
 
     class Config:
         from_attributes = True
@@ -38,9 +40,9 @@ class ReadArticleCreate(ReadArticleBase):
 
 
 class ReadArticle(ReadArticleBase):
-    id: int
-    read_at: datetime
-    user_id: int
+    id: Union[int, str]  # intまたはstr(UUID)を受け入れる
+    read_at: Union[datetime, str]  # datetimeまたはISOフォーマット文字列を受け入れる
+    user_id: Union[int, str]  # intまたはstr(UUID)を受け入れる
 
     class Config:
         from_attributes = True
@@ -52,7 +54,7 @@ class FavoriteArticleBase(BaseModel):
     article_description: Optional[str] = None
     article_image: Optional[str] = None
     article_categories: Optional[List[str]] = []
-    feed_id: Optional[int] = None
+    feed_id: Optional[Union[int, str]] = "aaa"
     is_external: bool = False
 
 
@@ -61,16 +63,18 @@ class FavoriteArticleCreate(FavoriteArticleBase):
 
 
 class FavoriteArticle(FavoriteArticleBase):
-    id: int
-    user_id: int
-    favorited_at: datetime
+    id: Union[int, str]  # intまたはstr(UUID)を受け入れる
+    user_id: Union[int, str]  # intまたはstr(UUID)を受け入れる
+    favorited_at: Union[
+        datetime, str
+    ]  # datetimeまたはISOフォーマット文字列を受け入れる
 
     class Config:
         from_attributes = True
 
 
 class AiSummaryBase(BaseModel):
-    feed_id: Optional[int] = None
+    feed_id: Optional[Union[int, str]] = None
     article_link: str
 
 
@@ -79,8 +83,8 @@ class AiSummaryCreate(AiSummaryBase):
 
 
 class AiSummary(AiSummaryBase):
-    id: int
-    created_at: datetime
+    id: Union[int, str]  # intまたはstr(UUID)を受け入れる
+    created_at: Union[datetime, str]  # datetimeまたはISOフォーマット文字列を受け入れる
     summary: str
 
     class Config:

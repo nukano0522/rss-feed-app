@@ -12,14 +12,12 @@ RUN npm config set fetch-retry-maxtimeout 600000 \
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# # node_modulesをクリーンアップして再インストール
-# RUN rm -rf node_modules \
-#     && npm cache clean --force \
-#     && npm ci
-# 依存関係をクリーンインストール
-RUN rm -rf node_modules && \
-    npm cache clean --force && \
-    npm install
+# 依存関係をインストール
+RUN rm -rf node_modules package-lock.json \
+    && npm install \
+    && npm install @rollup/rollup-linux-x64-gnu \
+    && npm install esbuild@0.21.5 @esbuild/linux-x64@0.21.5 \
+    && npm rebuild esbuild
 
 # ソースコードをコピー
 COPY . .

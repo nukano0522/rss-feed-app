@@ -1,132 +1,137 @@
-import boto3
 import logging
-from app.dynamodb.client import get_dynamodb_client
-from botocore.exceptions import ClientError
+import os
+from app.dynamodb.client import (
+    get_aioboto3_session,
+    get_dynamodb_client,
+    get_dynamodb_resource,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def create_feeds_table():
-    """フィードテーブルを作成する"""
+# テーブル作成関数の簡略化版
+async def create_table_if_not_exists(
+    table_name, key_schema, attribute_defs, gsi=None, throughput=None
+):
+    """指定されたテーブルが存在しない場合に作成する"""
     try:
-        client = get_dynamodb_client()
+        # 同期クライアントでテーブル一覧を取得
+        dynamodb = get_dynamodb_client()
+        tables = dynamodb.list_tables()
+        if table_name in tables.get("TableNames", []):
+            logger.info(f"{table_name}テーブルは既に存在します")
+            return True
 
-        # テーブルが既に存在するか確認
-        existing_tables = client.list_tables()["TableNames"]
-        if "feeds" in existing_tables:
-            logger.info("フィードテーブルは既に存在します。")
-            return
+        # テーブルが存在しない場合は作成
+        logger.info(f"{table_name}テーブルを作成します...")
 
-        # テーブルを作成
-        response = client.create_table(
-            TableName="feeds",
-            KeySchema=[
-                {"AttributeName": "id", "KeyType": "HASH"},  # パーティションキー
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "id", "AttributeType": "S"},
-                {"AttributeName": "url", "AttributeType": "S"},
-            ],
-            GlobalSecondaryIndexes=[
-                {
-                    "IndexName": "url-index",
-                    "KeySchema": [
-                        {"AttributeName": "url", "KeyType": "HASH"},
-                    ],
-                    "Projection": {"ProjectionType": "ALL"},
-                    "ProvisionedThroughput": {
-                        "ReadCapacityUnits": 5,
-                        "WriteCapacityUnits": 5,
-                    },
-                },
-            ],
-            ProvisionedThroughput={
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        )
-        logger.info(f"フィードテーブルを作成しました: {response}")
-        return response
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ResourceInUseException":
-            logger.info("フィードテーブルは既に存在します。")
-        else:
-            logger.error(f"テーブル作成エラー: {e}")
-            raise
+        # デフォルト値
+        if throughput is None:
+            throughput = {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+
+        # リソースを使用してテーブルを作成
+        res = get_dynamodb_resource()
+        params = {
+            "TableName": table_name,
+            "KeySchema": key_schema,
+            "AttributeDefinitions": attribute_defs,
+            "ProvisionedThroughput": throughput,
+        }
+
+        # GSIがあれば追加
+        if gsi:
+            params["GlobalSecondaryIndexes"] = gsi
+
+        table = res.create_table(**params)
+        logger.info(f"{table_name}テーブルが正常に作成されました")
+        return True
     except Exception as e:
-        logger.error(f"予期せぬエラー: {e}")
-        raise
-
-
-def create_favorite_articles_table():
-    """お気に入り記事テーブルを作成する"""
-    try:
-        client = get_dynamodb_client()
-
-        # テーブルが既に存在するか確認
-        existing_tables = client.list_tables()["TableNames"]
-        if "favorite_articles" in existing_tables:
-            logger.info("お気に入り記事テーブルは既に存在します。")
-            return
-
-        # テーブルを作成
-        response = client.create_table(
-            TableName="favorite_articles",
-            KeySchema=[
-                {"AttributeName": "id", "KeyType": "HASH"},  # パーティションキー
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "id", "AttributeType": "S"},
-                {"AttributeName": "user_id", "AttributeType": "S"},
-                {"AttributeName": "article_link", "AttributeType": "S"},
-            ],
-            GlobalSecondaryIndexes=[
-                {
-                    "IndexName": "user-id-index",
-                    "KeySchema": [
-                        {"AttributeName": "user_id", "KeyType": "HASH"},
-                    ],
-                    "Projection": {"ProjectionType": "ALL"},
-                    "ProvisionedThroughput": {
-                        "ReadCapacityUnits": 5,
-                        "WriteCapacityUnits": 5,
-                    },
-                },
-                {
-                    "IndexName": "article-link-index",
-                    "KeySchema": [
-                        {"AttributeName": "article_link", "KeyType": "HASH"},
-                    ],
-                    "Projection": {"ProjectionType": "ALL"},
-                    "ProvisionedThroughput": {
-                        "ReadCapacityUnits": 5,
-                        "WriteCapacityUnits": 5,
-                    },
-                },
-            ],
-            ProvisionedThroughput={
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        )
-        logger.info(f"お気に入り記事テーブルを作成しました: {response}")
-        return response
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ResourceInUseException":
-            logger.info("お気に入り記事テーブルは既に存在します。")
+        if "Table already exists" in str(e):
+            logger.info(f"{table_name}テーブルは既に存在します")
+            return True
         else:
-            logger.error(f"テーブル作成エラー: {e}")
-            raise
-    except Exception as e:
-        logger.error(f"予期せぬエラー: {e}")
-        raise
+            logger.error(f"{table_name}テーブル作成中にエラー: {str(e)}")
+            return False
 
 
-def init_tables():
-    """すべてのテーブルを初期化する"""
-    create_feeds_table()
-    create_favorite_articles_table()
+async def init_tables():
+    """すべてのテーブルを初期化"""
+    # feedsテーブル
+    feeds_key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
+    feeds_attrs = [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "name", "AttributeType": "S"},
+    ]
+    feeds_gsi = [
+        {
+            "IndexName": "name-index",
+            "KeySchema": [{"AttributeName": "name", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        }
+    ]
 
+    # favorite_articlesテーブル
+    fav_key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
+    fav_attrs = [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "user_id", "AttributeType": "S"},
+        {"AttributeName": "article_link", "AttributeType": "S"},
+    ]
+    fav_gsi = [
+        {
+            "IndexName": "user_id-index",
+            "KeySchema": [{"AttributeName": "user_id", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        },
+        {
+            "IndexName": "article_link-index",
+            "KeySchema": [{"AttributeName": "article_link", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        },
+    ]
 
-if __name__ == "__main__":
-    init_tables()
+    # read_articlesテーブル
+    read_key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
+    read_attrs = [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "user_id", "AttributeType": "S"},
+        {"AttributeName": "article_link", "AttributeType": "S"},
+    ]
+    read_gsi = [
+        {
+            "IndexName": "user_id-index",
+            "KeySchema": [{"AttributeName": "user_id", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        },
+        {
+            "IndexName": "article_link-index",
+            "KeySchema": [{"AttributeName": "article_link", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        },
+    ]
+
+    # テーブル作成を実行
+    status_feeds = await create_table_if_not_exists(
+        "feeds", feeds_key_schema, feeds_attrs, feeds_gsi
+    )
+    status_favs = await create_table_if_not_exists(
+        "favorite_articles", fav_key_schema, fav_attrs, fav_gsi
+    )
+    status_reads = await create_table_if_not_exists(
+        "read_articles", read_key_schema, read_attrs, read_gsi
+    )
+
+    # 作成されたテーブル一覧を取得
+    dynamodb = get_dynamodb_client()
+    tables = dynamodb.list_tables().get("TableNames", [])
+
+    return {
+        "status": "success",
+        "message": "テーブルの初期化が完了しました",
+        "tables": tables,
+    }

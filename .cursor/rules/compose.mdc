@@ -1,0 +1,9 @@
+---
+description: 
+globs: *compose.yaml,*compose.yml
+alwaysApply: false
+---
+
+# Your rule content
+
+- Agentモードにおいて、composeを指示なしに実行しないこと
