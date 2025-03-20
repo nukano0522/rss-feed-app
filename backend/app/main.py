@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 import logging
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 # ロガーの設定
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +40,20 @@ def get_application():
 
             app.include_router(api_router, prefix="/api/v1")
             logger.info("APIルーターが正常に登録されました")
+
+            # DynamoDBテーブルの初期化
+            use_dynamodb = os.getenv("USE_DYNAMODB", "false").lower() == "true"
+            if use_dynamodb:
+                try:
+                    from app.dynamodb.init_tables import init_tables
+
+                    init_tables()
+                    logger.info("DynamoDBテーブルが正常に初期化されました")
+                except Exception as dynamo_error:
+                    logger.error(
+                        f"DynamoDBテーブル初期化中にエラーが発生しました: {str(dynamo_error)}"
+                    )
+                    # DynamoDBエラーでもアプリケーションは起動させる
 
             # データベース初期化
             try:

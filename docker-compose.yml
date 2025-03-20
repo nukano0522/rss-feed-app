@@ -46,9 +46,15 @@ services:
       - /app/__pycache__
     env_file:
       - ./backend/.env.development
+    environment:
+      - ENVIRONMENT=development
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=ap-northeast-1
     depends_on:
       db:
         condition: service_healthy
+      dynamodb-local:
+        condition: service_started
     networks:
       - app-network
 
@@ -75,6 +81,20 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb-local
+    user: "1000:1000"
+    ports:
+      - "8001:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb"
+    environment:
+      - AWS_REGION=ap-northeast-1
+    volumes:
+      - ./dynamodb-data:/home/dynamodblocal/data
+    networks:
+      - app-network
 
 volumes:
   mysql_data:

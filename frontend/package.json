@@ -55,6 +55,9 @@
     "typescript": "^5.7.3",
     "vite": "^5.0.8"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.6.1"
+  },
   "resolutions": {
     "react-router-dom": "^6.21.3"
   }
