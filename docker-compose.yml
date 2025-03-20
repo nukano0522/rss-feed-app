@@ -85,21 +85,20 @@ services:
   dynamodb-local:
     image: amazon/dynamodb-local:latest
     container_name: dynamodb-local
-    user: "1000:1000"
+    user: root
     ports:
       - "8001:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb"
+    command: -jar DynamoDBLocal.jar -sharedDb -dbPath /data
     environment:
       - AWS_REGION=ap-northeast-1
     volumes:
-      - dynamodb-data:/home/dynamodblocal/data
+      - ./dynamodb_data:/data
     networks:
       - app-network
 
 volumes:
   mysql_data:
   node_modules:
-  dynamodb-data:
 
 networks:
   app-network:
