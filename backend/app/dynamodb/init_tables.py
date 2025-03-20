@@ -130,6 +130,31 @@ async def init_tables():
         }
     ]
 
+    # ai_summariesテーブル
+    summaries_key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
+    summaries_attrs = [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "article_link", "AttributeType": "S"},
+        {"AttributeName": "feed_id", "AttributeType": "S"},
+    ]
+    summaries_gsi = [
+        {
+            "IndexName": "article_link-index",
+            "KeySchema": [{"AttributeName": "article_link", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        },
+        {
+            "IndexName": "article_link-feed_id-index",
+            "KeySchema": [
+                {"AttributeName": "article_link", "KeyType": "HASH"},
+                {"AttributeName": "feed_id", "KeyType": "RANGE"},
+            ],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        },
+    ]
+
     # テーブル作成を実行
     status_feeds = await create_table_if_not_exists(
         "feeds", feeds_key_schema, feeds_attrs, feeds_gsi
@@ -142,6 +167,9 @@ async def init_tables():
     )
     status_users = await create_table_if_not_exists(
         "users", users_key_schema, users_attrs, users_gsi
+    )
+    status_summaries = await create_table_if_not_exists(
+        "ai_summaries", summaries_key_schema, summaries_attrs, summaries_gsi
     )
 
     # 作成されたテーブル一覧を取得

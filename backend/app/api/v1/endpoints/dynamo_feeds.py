@@ -14,10 +14,16 @@ from app.schemas.feed import (
     ReadArticleCreate,
     FavoriteArticle,
     FavoriteArticleCreate,
+    AiSummary,
+    AiSummaryCreate,
 )
 from app.dynamodb.repositories.feeds import FeedRepository
 from app.dynamodb.repositories.read_articles import ReadArticleRepository
 from app.dynamodb.repositories.favorite_articles import FavoriteArticleRepository
+from app.dynamodb.repositories.ai_summary import AiSummaryRepository
+from app.utils.content_extractor import ContentExtractor
+from app.utils.metadata_extractor import MetadataExtractor
+from app.utils.summarizer import ArticleSummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +46,26 @@ def get_read_article_repository() -> ReadArticleRepository:
 def get_favorite_article_repository() -> FavoriteArticleRepository:
     """お気に入り記事リポジトリを取得する依存性注入関数"""
     return FavoriteArticleRepository()
+
+
+def get_ai_summary_repository() -> AiSummaryRepository:
+    """AI要約リポジトリを取得する依存性注入関数"""
+    return AiSummaryRepository()
+
+
+def get_content_extractor() -> ContentExtractor:
+    """コンテンツ抽出器を取得する依存性注入関数"""
+    return ContentExtractor()
+
+
+def get_metadata_extractor() -> MetadataExtractor:
+    """メタデータ抽出器を取得する依存性注入関数"""
+    return MetadataExtractor()
+
+
+def get_summarizer() -> ArticleSummarizer:
+    """記事要約器を取得する依存性注入関数"""
+    return ArticleSummarizer()
 
 
 @router.get("/favorite-articles", response_model=List[FavoriteArticle])
@@ -262,6 +288,47 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/extract-metadata")
+async def extract_metadata(
+    url: str = Query(..., description="メタデータを抽出するURL"),
+    user: User = Depends(current_active_user),
+    metadata_extractor: MetadataExtractor = Depends(get_metadata_extractor),
+):
+    """URLからメタデータ（タイトル、説明、画像など）を抽出"""
+    try:
+        # 記事の取得
+        async with aiohttp.ClientSession() as client:
+            async with client.get(url) as response:
+                if response.status != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"URLにアクセスできません: {response.status}",
+                    )
+                html = await response.text()
+
+        # メタデータの抽出
+        metadata = metadata_extractor.extract_metadata(html, url)
+
+        return {
+            "title": metadata.get("title", ""),
+            "description": metadata.get("description", ""),
+            "image": metadata.get("image", ""),
+            "categories": metadata.get("keywords", []),
+        }
+    except aiohttp.ClientError as e:
+        logger.error(f"URL取得エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"URLにアクセスできません: {str(e)}",
+        )
+    except Exception as e:
+        logger.error(f"メタデータ抽出エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"メタデータの抽出に失敗しました: {str(e)}",
+        )
+
+
 @router.get("", response_model=List[Feed])
 async def get_feeds(
     user: User = Depends(current_active_user),
@@ -383,4 +450,70 @@ async def delete_feed(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"フィードの削除中にエラーが発生しました: {str(e)}",
+        )
+
+
+@router.post("/articles/summarize", response_model=AiSummary)
+async def summarize_article(
+    article: AiSummaryCreate,
+    lang: str = Query("ja", description="要約の言語（ja/en）"),
+    ai_summary_repository: AiSummaryRepository = Depends(get_ai_summary_repository),
+    content_extractor: ContentExtractor = Depends(get_content_extractor),
+    summarizer: ArticleSummarizer = Depends(get_summarizer),
+):
+    """記事を要約する"""
+    # 外部記事の場合は feed_id を None として扱う
+    feed_id = None if article.feed_id == 0 else article.feed_id
+
+    # 既存の要約をチェック
+    existing_summary = await ai_summary_repository.get_summary_by_article_link(
+        article.article_link, feed_id
+    )
+    if existing_summary:
+        return existing_summary
+
+    try:
+        # 記事本文の取得
+        async with aiohttp.ClientSession() as client:
+            async with client.get(article.article_link) as response:
+                if response.status != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"記事にアクセスできません: {response.status}",
+                    )
+                html = await response.text()
+
+        # HTMLから本文を抽出
+        article_text = content_extractor.extract_main_content(
+            html, article.article_link
+        )
+
+        # 本文が短すぎる場合はエラー
+        if len(article_text) < 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="記事の本文が短すぎるか、抽出できませんでした",
+            )
+
+        # GPTによる要約生成
+        summary_text = await summarizer.summarize(article_text, lang)
+        if not summary_text:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="要約の生成に失敗しました",
+            )
+
+        # 要約をDBに保存
+        new_summary = await ai_summary_repository.create_summary(
+            article.article_link, summary_text, feed_id
+        )
+
+        return new_summary
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"記事要約エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"記事の要約に失敗しました: {str(e)}",
         )

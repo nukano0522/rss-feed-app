@@ -21,9 +21,5 @@ COPY .env.development ./.env
 # 環境変数を設定
 ENV PYTHONPATH=/app
 
-# バックアップディレクトリの作成
-RUN mkdir -p /app/data/dynamodb_backup && \
-    chmod -R 777 /app/data
-
 # FastAPIアプリケーションを起動
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
