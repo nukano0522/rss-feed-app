@@ -115,6 +115,21 @@ async def init_tables():
         },
     ]
 
+    # usersテーブル
+    users_key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
+    users_attrs = [
+        {"AttributeName": "id", "AttributeType": "N"},
+        {"AttributeName": "email", "AttributeType": "S"},
+    ]
+    users_gsi = [
+        {
+            "IndexName": "email-index",
+            "KeySchema": [{"AttributeName": "email", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        }
+    ]
+
     # テーブル作成を実行
     status_feeds = await create_table_if_not_exists(
         "feeds", feeds_key_schema, feeds_attrs, feeds_gsi
@@ -124,6 +139,9 @@ async def init_tables():
     )
     status_reads = await create_table_if_not_exists(
         "read_articles", read_key_schema, read_attrs, read_gsi
+    )
+    status_users = await create_table_if_not_exists(
+        "users", users_key_schema, users_attrs, users_gsi
     )
 
     # 作成されたテーブル一覧を取得
