@@ -41,22 +41,6 @@ def get_application():
             app.include_router(api_router, prefix="/api/v1")
             logger.info("APIルーターが正常に登録されました")
 
-            # SQLデータベース初期化
-            try:
-                from app.database import engine, Base, get_async_session
-                from app import models
-                from sqlalchemy import select
-                from sqlalchemy.ext.asyncio import AsyncSession
-
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-                logger.info("SQLデータベーステーブルが正常に初期化されました")
-            except Exception as db_error:
-                logger.error(
-                    f"SQLデータベース初期化中にエラーが発生しました: {str(db_error)}"
-                )
-                # データベースエラーでもアプリケーションは起動させる
-
             # DynamoDBテーブル初期化
             try:
                 from app.dynamodb.init_tables import init_tables

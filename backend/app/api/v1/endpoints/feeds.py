@@ -1,136 +1,237 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from typing import List, Callable
-from datetime import datetime
+from fastapi import APIRouter, HTTPException, Depends, status, Query
+from typing import List, Dict, Any
 import logging
-from app.database import get_async_session
-from app.models.user import User
-from app.auth.auth import current_active_user
-from app import models, schemas
-from base64 import b64decode
 import aiohttp
+from datetime import datetime
+from base64 import b64decode
+from app.auth.auth import current_active_user
+from app.models.user import User
+from app.schemas.feed import (
+    Feed,
+    FeedCreate,
+    FeedUpdate,
+    ReadArticle,
+    ReadArticleCreate,
+    FavoriteArticle,
+    FavoriteArticleCreate,
+    AiSummary,
+    AiSummaryCreate,
+)
+from app.dynamodb.repositories.feeds import FeedRepository
+from app.dynamodb.repositories.read_articles import ReadArticleRepository
+from app.dynamodb.repositories.favorite_articles import FavoriteArticleRepository
+from app.dynamodb.repositories.ai_summary import AiSummaryRepository
 from app.utils.content_extractor import ContentExtractor
 from app.utils.metadata_extractor import MetadataExtractor
 from app.utils.summarizer import ArticleSummarizer
 
 logger = logging.getLogger(__name__)
 
+router = APIRouter()
+
 # RSS2JSONのエンドポイント
 RSS2JSON_ENDPOINT = "https://api.rss2json.com/v1/api.json"
 
-router = APIRouter()
+
+def get_feed_repository() -> FeedRepository:
+    """フィードリポジトリを取得する依存性注入関数"""
+    return FeedRepository()
 
 
-# 依存性注入のための関数
+def get_read_article_repository() -> ReadArticleRepository:
+    """既読記事リポジトリを取得する依存性注入関数"""
+    return ReadArticleRepository()
+
+
+def get_favorite_article_repository() -> FavoriteArticleRepository:
+    """お気に入り記事リポジトリを取得する依存性注入関数"""
+    return FavoriteArticleRepository()
+
+
+def get_ai_summary_repository() -> AiSummaryRepository:
+    """AI要約リポジトリを取得する依存性注入関数"""
+    return AiSummaryRepository()
+
+
 def get_content_extractor() -> ContentExtractor:
+    """コンテンツ抽出器を取得する依存性注入関数"""
     return ContentExtractor()
 
 
 def get_metadata_extractor() -> MetadataExtractor:
+    """メタデータ抽出器を取得する依存性注入関数"""
     return MetadataExtractor()
 
 
 def get_summarizer() -> ArticleSummarizer:
+    """記事要約器を取得する依存性注入関数"""
     return ArticleSummarizer()
 
 
-@router.get("", response_model=List[schemas.Feed])
-async def get_feeds(
+@router.get("/favorite-articles", response_model=List[FavoriteArticle])
+async def get_favorite_articles(
     user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
+    favorite_article_repository: FavoriteArticleRepository = Depends(
+        get_favorite_article_repository
+    ),
 ):
-    logger.info(f"Getting feeds for user {user.email}")
-    result = await session.execute(select(models.Feed))
-    return result.scalars().all()
+    """ユーザーのお気に入り記事一覧を取得"""
+    try:
+        logger.info(f"ユーザー {user.id} のお気に入り記事を取得します")
+        favorite_articles = (
+            await favorite_article_repository.get_favorite_articles_by_user(user.id)
+        )
+
+        if not favorite_articles:
+            logger.info(f"ユーザー {user.id} のお気に入り記事は見つかりませんでした")
+            return []
+
+        return favorite_articles
+    except Exception as e:
+        logger.error(f"お気に入り記事取得エラー: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"お気に入り記事の取得中にエラーが発生しました: {str(e)}",
+        )
 
 
-@router.post("", response_model=schemas.Feed)
-async def create_feed(
-    feed: schemas.FeedCreate,
+@router.get("/favorite-articles/check", response_model=List[str])
+async def check_favorite_articles(
     user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
+    favorite_article_repository: FavoriteArticleRepository = Depends(
+        get_favorite_article_repository
+    ),
 ):
-    db_feed = models.Feed(**feed.dict())
-    session.add(db_feed)
-    await session.commit()
-    await session.refresh(db_feed)
-    return db_feed
+    """ユーザーのお気に入り記事のリンク一覧を取得（チェック用）"""
+    try:
+        favorite_links = await favorite_article_repository.check_favorite_articles(
+            user.id
+        )
+        return favorite_links
+    except Exception as e:
+        logger.error(f"お気に入り記事リンク一覧取得エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"お気に入り記事リンク一覧の取得中にエラーが発生しました: {str(e)}",
+        )
 
 
-@router.put("/{feed_id}", response_model=schemas.Feed)
-async def update_feed(
-    feed_id: int,
-    feed_update: schemas.FeedUpdate,
+@router.post("/favorite-articles", response_model=FavoriteArticle)
+async def add_favorite_article(
+    article: FavoriteArticleCreate,
     user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
+    favorite_article_repository: FavoriteArticleRepository = Depends(
+        get_favorite_article_repository
+    ),
+    feed_repository: FeedRepository = Depends(get_feed_repository),
 ):
-    result = await session.execute(
-        select(models.Feed).filter(models.Feed.id == feed_id)
-    )
-    db_feed = result.scalar_one_or_none()
-    if db_feed is None:
-        raise HTTPException(status_code=404, detail="Feed not found")
+    """記事をお気に入りに追加"""
+    try:
+        # 外部記事の場合はフィード確認をスキップ
+        if article.feed_id is not None and not article.is_external:
+            # フィードの存在確認
+            feed = await feed_repository.get_feed_by_id(article.feed_id)
+            if not feed:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="指定されたフィードが見つかりません",
+                )
 
-    for key, value in feed_update.dict(exclude_unset=True).items():
-        setattr(db_feed, key, value)
+        new_favorite = await favorite_article_repository.add_favorite_article(
+            article, user.id
+        )
+        return new_favorite
+    except ValueError as ve:
+        # 既存登録エラー
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"お気に入り記事追加エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"お気に入り登録中にエラーが発生しました: {str(e)}",
+        )
 
-    await session.commit()
-    await session.refresh(db_feed)
-    return db_feed
 
-
-@router.delete("/{feed_id}")
-async def delete_feed(
-    feed_id: int,
+@router.delete(
+    "/favorite-articles/{article_link}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def remove_favorite_article(
+    article_link: str,
     user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
+    favorite_article_repository: FavoriteArticleRepository = Depends(
+        get_favorite_article_repository
+    ),
 ):
-    result = await session.execute(
-        select(models.Feed).filter(models.Feed.id == feed_id)
-    )
-    db_feed = result.scalar_one_or_none()
-    if db_feed is None:
-        raise HTTPException(status_code=404, detail="Feed not found")
+    """お気に入りから記事を削除"""
+    try:
+        # Base64デコードしてURLを復元
+        decoded_link = b64decode(article_link).decode("utf-8")
 
-    await session.delete(db_feed)
-    await session.commit()
-    return {"ok": True}
+        await favorite_article_repository.remove_favorite_article(decoded_link, user.id)
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(ve),
+        )
+    except Exception as e:
+        logger.error(f"お気に入り記事削除エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"お気に入り削除中にエラーが発生しました: {str(e)}",
+        )
 
 
-@router.get("/read-articles")
+@router.get("/read-articles", response_model=dict)
 async def get_read_articles(
     user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
+    read_article_repository: ReadArticleRepository = Depends(
+        get_read_article_repository
+    ),
 ):
-    query = select(models.ReadArticle.article_link).where(
-        models.ReadArticle.user_id == user.id
-    )
-    result = await session.execute(query)
-    read_articles = [row[0] for row in result.fetchall()]
+    """ユーザーの既読記事リンクリストを取得"""
+    try:
+        read_articles = await read_article_repository.get_all_read_articles_by_user(
+            user.id
+        )
+        return {"read_articles": read_articles}
+    except Exception as e:
+        logger.error(f"既読記事取得エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"既読記事の取得中にエラーが発生しました: {str(e)}",
+        )
 
-    return {"read_articles": read_articles}
 
-
-@router.post("/read-articles", response_model=schemas.ReadArticle)
+@router.post("/read-articles", response_model=ReadArticle)
 async def mark_article_as_read(
-    article: schemas.ReadArticleCreate,
+    article: ReadArticleCreate,
     user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
+    read_article_repository: ReadArticleRepository = Depends(
+        get_read_article_repository
+    ),
 ):
-    # article.dictの内容にuser_idを追加
-    article_data = article.dict()
-    article_data["user_id"] = user.id
-
-    db_article = models.ReadArticle(**article_data)
-    session.add(db_article)
-    await session.commit()
-    await session.refresh(db_article)
-    return db_article
+    """記事を既読としてマークする"""
+    try:
+        read_article = await read_article_repository.mark_article_as_read(
+            article, user.id
+        )
+        return read_article
+    except Exception as e:
+        logger.error(f"既読記事作成エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"既読記事の作成中にエラーが発生しました: {str(e)}",
+        )
 
 
 @router.get("/parse-feed")
 async def parse_feed(url: str = Query(...), user: User = Depends(current_active_user)):
+    """RSSフィードを解析するエンドポイント"""
     logger.info(f"Parsing feed: {url}")
     try:
         # RSS2JSONにリクエスト（API keyなし）
@@ -187,174 +288,6 @@ async def parse_feed(url: str = Query(...), user: User = Depends(current_active_
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/favorite-articles", response_model=schemas.FavoriteArticle)
-async def add_favorite_article(
-    article: schemas.FavoriteArticleCreate,
-    user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
-):
-    """記事をお気に入りに追加"""
-    try:
-        # 外部記事の場合はフィード確認をスキップ
-        if article.feed_id is not None and not article.is_external:
-            # フィードの存在確認
-            feed_result = await session.execute(
-                select(models.Feed).filter(models.Feed.id == article.feed_id)
-            )
-            feed = feed_result.scalar_one_or_none()
-            if not feed:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="指定されたフィードが見つかりません",
-                )
-
-        new_favorite = models.FavoriteArticle(
-            article_link=article.article_link,
-            article_title=article.article_title,
-            article_description=article.article_description,
-            article_image=article.article_image,
-            article_categories=article.article_categories or [],
-            feed_id=article.feed_id,
-            user_id=user.id,
-            is_external=article.is_external,
-        )
-        session.add(new_favorite)
-        await session.commit()
-        await session.refresh(new_favorite)
-        return new_favorite
-    except HTTPException:
-        raise
-    except Exception as e:
-        await session.rollback()
-        if "uq_favorite_article_user" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="この記事は既にお気に入りに登録されています",
-            )
-        logger.error(f"Error adding favorite article: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="お気に入り登録中にエラーが発生しました",
-        )
-
-
-@router.delete(
-    "/favorite-articles/{article_link}", status_code=status.HTTP_204_NO_CONTENT
-)
-async def remove_favorite_article(
-    article_link: str,
-    user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
-):
-    """お気に入りから記事を削除"""
-    try:
-        # Base64デコードしてURLを復元
-        decoded_link = b64decode(article_link).decode("utf-8")
-
-        result = await session.execute(
-            delete(models.FavoriteArticle).where(
-                models.FavoriteArticle.article_link == decoded_link,
-                models.FavoriteArticle.user_id == user.id,
-            )
-        )
-        await session.commit()
-
-        if result.rowcount == 0:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="お気に入りの記事が見つかりません",
-            )
-    except Exception as e:
-        logger.error(f"Error removing favorite article: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="無効なURLフォーマットです"
-        )
-
-
-@router.get("/favorite-articles", response_model=List[schemas.FavoriteArticle])
-async def get_favorite_articles(
-    user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
-):
-    """ユーザーのお気に入り記事一覧を取得"""
-    result = await session.execute(
-        select(models.FavoriteArticle)
-        .where(models.FavoriteArticle.user_id == user.id)
-        .order_by(models.FavoriteArticle.favorited_at.desc())
-    )
-    return result.scalars().all()
-
-
-@router.get("/favorite-articles/check", response_model=List[str])
-async def check_favorite_articles(
-    user: User = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session),
-):
-    """ユーザーのお気に入り記事のリンク一覧を取得（チェック用）"""
-    result = await session.execute(
-        select(models.FavoriteArticle.article_link).where(
-            models.FavoriteArticle.user_id == user.id
-        )
-    )
-    return [row[0] for row in result.all()]
-
-
-@router.post("/articles/summarize", response_model=schemas.AiSummary)
-async def summarize_article(
-    article: schemas.AiSummaryCreate,
-    lang: str = Query("ja", description="要約の言語（ja/en）"),
-    session: AsyncSession = Depends(get_async_session),
-    content_extractor: ContentExtractor = Depends(get_content_extractor),
-    summarizer: ArticleSummarizer = Depends(get_summarizer),
-):
-    # 外部記事の場合は feed_id を None として扱う
-    feed_id = None if article.feed_id == 0 else article.feed_id
-
-    # 既存の要約をチェック
-    query = select(models.AiSummary).where(
-        models.AiSummary.article_link == article.article_link
-    )
-    if feed_id is not None:
-        query = query.where(models.AiSummary.feed_id == feed_id)
-    else:
-        query = query.where(models.AiSummary.feed_id.is_(None))
-
-    existing_summary = await session.execute(query)
-    summary = existing_summary.scalar_one_or_none()
-    if summary:
-        return summary
-
-    try:
-        # 記事本文の取得
-        async with aiohttp.ClientSession() as client:
-            async with client.get(article.article_link) as response:
-                html = await response.text()
-
-        # HTMLから本文を抽出
-        article_text = content_extractor.extract_main_content(
-            html, article.article_link
-        )
-
-        # GPTによる要約生成
-        summary_text = await summarizer.summarize(article_text, lang)
-
-        # 要約をDBに保存
-        new_summary = models.AiSummary(
-            feed_id=feed_id,
-            article_link=article.article_link,
-            summary=summary_text,
-        )
-        session.add(new_summary)
-        await session.commit()
-        await session.refresh(new_summary)
-
-        return new_summary
-
-    except Exception as e:
-        logger.error(f"Error summarizing article: {str(e)}")
-        raise HTTPException(status_code=500, detail="記事の要約に失敗しました")
-
-
 @router.get("/extract-metadata")
 async def extract_metadata(
     url: str = Query(..., description="メタデータを抽出するURL"),
@@ -393,4 +326,194 @@ async def extract_metadata(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"メタデータの抽出に失敗しました: {str(e)}",
+        )
+
+
+@router.get("", response_model=List[Feed])
+async def get_feeds(
+    user: User = Depends(current_active_user),
+    feed_repository: FeedRepository = Depends(get_feed_repository),
+):
+    """すべてのフィードを取得"""
+    logger.info(f"Getting feeds for user {user.email}")
+    try:
+        feeds = await feed_repository.get_all_feeds()
+        return feeds
+    except Exception as e:
+        logger.error(f"フィード取得エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"フィードの取得中にエラーが発生しました: {str(e)}",
+        )
+
+
+@router.get("/{feed_id}", response_model=Feed)
+async def get_feed(
+    feed_id: str,
+    user: User = Depends(current_active_user),
+    feed_repository: FeedRepository = Depends(get_feed_repository),
+):
+    """IDでフィードを取得"""
+    logger.info(f"Getting feed {feed_id} for user {user.email}")
+    try:
+        feed = await feed_repository.get_feed_by_id(feed_id)
+        if not feed:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="フィードが見つかりません",
+            )
+        return feed
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"フィード取得エラー (ID: {feed_id}): {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"フィードの取得中にエラーが発生しました: {str(e)}",
+        )
+
+
+@router.post("", response_model=Feed, status_code=status.HTTP_201_CREATED)
+async def create_feed(
+    feed: FeedCreate,
+    user: User = Depends(current_active_user),
+    feed_repository: FeedRepository = Depends(get_feed_repository),
+):
+    """新しいフィードを作成"""
+    logger.info(f"Creating feed for user {user.email}")
+    try:
+        created_feed = await feed_repository.create_feed(feed)
+        return created_feed
+    except Exception as e:
+        logger.error(f"フィード作成エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"フィードの作成中にエラーが発生しました: {str(e)}",
+        )
+
+
+@router.put("/{feed_id}", response_model=Feed)
+async def update_feed(
+    feed_id: str,
+    feed_update: FeedUpdate,
+    user: User = Depends(current_active_user),
+    feed_repository: FeedRepository = Depends(get_feed_repository),
+):
+    """フィードを更新"""
+    logger.info(f"Updating feed {feed_id} for user {user.email}")
+    try:
+        # フィードが存在するか確認
+        feed = await feed_repository.get_feed_by_id(feed_id)
+        if not feed:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="フィードが見つかりません",
+            )
+
+        # 更新を実行
+        updated_feed = await feed_repository.update_feed(feed_id, feed_update)
+        return updated_feed
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"フィード更新エラー (ID: {feed_id}): {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"フィードの更新中にエラーが発生しました: {str(e)}",
+        )
+
+
+@router.delete("/{feed_id}")
+async def delete_feed(
+    feed_id: str,
+    user: User = Depends(current_active_user),
+    feed_repository: FeedRepository = Depends(get_feed_repository),
+):
+    """フィードを削除"""
+    logger.info(f"Deleting feed {feed_id} for user {user.email}")
+    try:
+        # フィードが存在するか確認
+        feed = await feed_repository.get_feed_by_id(feed_id)
+        if not feed:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="フィードが見つかりません",
+            )
+
+        # 削除を実行
+        await feed_repository.delete_feed(feed_id)
+        return {"ok": True, "message": "フィードが正常に削除されました"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"フィード削除エラー (ID: {feed_id}): {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"フィードの削除中にエラーが発生しました: {str(e)}",
+        )
+
+
+@router.post("/articles/summarize", response_model=AiSummary)
+async def summarize_article(
+    article: AiSummaryCreate,
+    lang: str = Query("ja", description="要約の言語（ja/en）"),
+    ai_summary_repository: AiSummaryRepository = Depends(get_ai_summary_repository),
+    content_extractor: ContentExtractor = Depends(get_content_extractor),
+    summarizer: ArticleSummarizer = Depends(get_summarizer),
+):
+    """記事を要約する"""
+    # 外部記事の場合は feed_id を None として扱う
+    feed_id = None if article.feed_id == 0 else article.feed_id
+
+    # 既存の要約をチェック
+    existing_summary = await ai_summary_repository.get_summary_by_article_link(
+        article.article_link, feed_id
+    )
+    if existing_summary:
+        return existing_summary
+
+    try:
+        # 記事本文の取得
+        async with aiohttp.ClientSession() as client:
+            async with client.get(article.article_link) as response:
+                if response.status != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"記事にアクセスできません: {response.status}",
+                    )
+                html = await response.text()
+
+        # HTMLから本文を抽出
+        article_text = content_extractor.extract_main_content(
+            html, article.article_link
+        )
+
+        # 本文が短すぎる場合はエラー
+        if len(article_text) < 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="記事の本文が短すぎるか、抽出できませんでした",
+            )
+
+        # GPTによる要約生成
+        summary_text = await summarizer.summarize(article_text, lang)
+        if not summary_text:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="要約の生成に失敗しました",
+            )
+
+        # 要約をDBに保存
+        new_summary = await ai_summary_repository.create_summary(
+            article.article_link, summary_text, feed_id
+        )
+
+        return new_summary
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"記事要約エラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"記事の要約に失敗しました: {str(e)}",
         )

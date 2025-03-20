@@ -16,3 +16,6 @@ AWS_ACCESS_KEY_ID = os.getenv(
 AWS_SECRET_ACCESS_KEY = os.getenv(
     "AWS_SECRET_ACCESS_KEY", os.getenv("ENV_AWS_SECRET_ACCESS_KEY", "dummy")
 )
+
+# USE_DYNAMODBは残しておく（他の場所で使用されている可能性がある）
+USE_DYNAMODB = os.getenv("USE_DYNAMODB", "true").lower() == "true"

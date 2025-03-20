@@ -1,18 +1,8 @@
 from typing import AsyncGenerator, Optional, Dict, Any
 from fastapi import Depends
-from fastapi_users.db import SQLAlchemyUserDatabase, BaseUserDatabase
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from ..database import get_async_session
+from fastapi_users.db import BaseUserDatabase
 from ..models.user import User
 from app.dynamodb.repositories.users import DynamoUserRepository
-
-
-# SQLAlchemy版のユーザーDB取得関数
-async def get_user_db(
-    session: AsyncSession = Depends(get_async_session),
-) -> AsyncGenerator[SQLAlchemyUserDatabase, None]:
-    yield SQLAlchemyUserDatabase(session, User)
 
 
 # DynamoDB版のユーザーデータベースアダプター
@@ -50,28 +40,25 @@ class DynamoUserDatabase(BaseUserDatabase[User, int]):
 
     async def update(self, user: User, update_dict: Dict[str, Any]) -> User:
         """ユーザーを更新"""
-        # ユーザー辞書に変換
         user_dict = await self.repository.update_user(user.id, update_dict)
-        if user_dict:
-            return self._map_user(user_dict)
-        return user
+        return self._map_user(user_dict)
 
     async def delete(self, user: User) -> None:
         """ユーザーを削除"""
         await self.repository.delete_user(user.id)
 
     def _map_user(self, user_dict: Dict[str, Any]) -> User:
-        """DynamoDBのユーザー辞書からUserモデルに変換"""
+        """辞書からUserモデルへ変換"""
         return User(
-            id=user_dict["id"],
-            email=user_dict["email"],
-            hashed_password=user_dict["hashed_password"],
+            id=user_dict.get("id", 0),
+            email=user_dict.get("email", ""),
+            hashed_password=user_dict.get("hashed_password", ""),
             is_active=user_dict.get("is_active", True),
             is_superuser=user_dict.get("is_superuser", False),
             is_verified=user_dict.get("is_verified", False),
         )
 
 
-# DynamoDB版のユーザーDBを取得する関数
 async def get_dynamo_user_db() -> AsyncGenerator[DynamoUserDatabase, None]:
+    """DynamoDB版のユーザーデータベースを取得"""
     yield DynamoUserDatabase()
