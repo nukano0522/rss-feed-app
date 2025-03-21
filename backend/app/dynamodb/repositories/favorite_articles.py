@@ -4,12 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 import aioboto3
 from app.schemas.feed import FavoriteArticle, FavoriteArticleCreate
-from app.config import (
-    DYNAMODB_ENDPOINT,
-    AWS_REGION,
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-)
+from app.dynamodb.client import get_aioboto3_session, get_dynamodb_aioclient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,8 +15,10 @@ class FavoriteArticleRepository:
 
     def __init__(self):
         self.table_name = "favorite_articles"
-        # セッションを保持
-        self.session = aioboto3.Session()
+        # セッションを取得
+        self.session = get_aioboto3_session()
+        # クライアント設定を取得
+        self.client_kwargs = get_dynamodb_aioclient()
 
     async def get_favorite_articles_by_user(
         self, user_id: Any
@@ -29,13 +26,7 @@ class FavoriteArticleRepository:
         """ユーザーIDでお気に入り記事を取得"""
         logger.info(f"Getting favorite articles for user {user_id}")
 
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 # user_idの文字列化
                 user_id_str = str(user_id)
@@ -131,13 +122,7 @@ class FavoriteArticleRepository:
         self, article: FavoriteArticleCreate, user_id: Any
     ) -> FavoriteArticle:
         """記事をお気に入りに追加"""
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 # user_idの文字列化
                 user_id_str = str(user_id)
@@ -240,13 +225,7 @@ class FavoriteArticleRepository:
 
     async def check_favorite_articles(self, user_id: Any) -> List[str]:
         """ユーザーがお気に入りにした記事リンクの一覧を取得"""
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 user_id_str = str(user_id)
 
@@ -277,13 +256,7 @@ class FavoriteArticleRepository:
 
     async def remove_favorite_article(self, article_link: str, user_id: Any) -> bool:
         """お気に入りから記事を削除"""
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 user_id_str = str(user_id)
 
@@ -332,13 +305,7 @@ class FavoriteArticleRepository:
 
     async def _check_existing_favorite(self, user_id: str, article_link: str) -> bool:
         """既存のお気に入り記事をチェックする"""
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 # user_idの文字列化
                 user_id_str = str(user_id)
@@ -367,13 +334,7 @@ class FavoriteArticleRepository:
         self, article_id: Any
     ) -> Optional[FavoriteArticle]:
         """IDでお気に入り記事を取得"""
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 # IDを数値に変換して数値型として扱う
                 try:
@@ -406,13 +367,7 @@ class FavoriteArticleRepository:
 
     async def delete_favorite_article(self, article_id: Any) -> bool:
         """お気に入り記事を削除"""
-        async with self.session.client(
-            "dynamodb",
-            endpoint_url=DYNAMODB_ENDPOINT,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        ) as client:
+        async with self.session.client(**self.client_kwargs) as client:
             try:
                 # IDを数値に変換して数値型として扱う
                 try:

@@ -5,11 +5,7 @@ import os
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from botocore.exceptions import ClientError
-from app.dynamodb.client import get_dynamodb_resource, get_aioboto3_session
-
-# DynamoDBの設定を取得
-DYNAMODB_ENDPOINT = os.getenv("DYNAMODB_ENDPOINT", "http://dynamodb-local:8000")
-AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")
+from app.dynamodb.client import get_dynamodb_resource, get_aioboto3_session, AWS_REGION
 
 logger = logging.getLogger(__name__)
 
