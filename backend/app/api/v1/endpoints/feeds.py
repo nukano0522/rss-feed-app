@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import List, Dict, Any
 import logging
 import aiohttp
+import time
 from datetime import datetime
 from base64 import b64decode
 from app.auth.auth import current_active_user
@@ -45,7 +46,7 @@ def get_read_article_repository() -> ReadArticleRepository:
 
 def get_favorite_article_repository() -> FavoriteArticleRepository:
     """お気に入り記事リポジトリを取得する依存性注入関数"""
-    return FavoriteArticleRepository()
+    return FavoriteArticleRepository.get_instance()
 
 
 def get_ai_summary_repository() -> AiSummaryRepository:
@@ -126,20 +127,32 @@ async def add_favorite_article(
     feed_repository: FeedRepository = Depends(get_feed_repository),
 ):
     """記事をお気に入りに追加"""
+    start_time = time.time()
     try:
         # 外部記事の場合はフィード確認をスキップ
         if article.feed_id is not None and not article.is_external:
+            feed_check_start = time.time()
             # フィードの存在確認
             feed = await feed_repository.get_feed_by_id(article.feed_id)
+            feed_check_time = time.time() - feed_check_start
+            logger.info(f"フィード存在確認時間: {feed_check_time:.4f}秒")
+
             if not feed:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="指定されたフィードが見つかりません",
                 )
 
+        repo_call_start = time.time()
         new_favorite = await favorite_article_repository.add_favorite_article(
             article, user.id
         )
+        repo_call_time = time.time() - repo_call_start
+        logger.info(f"リポジトリ呼び出し時間: {repo_call_time:.4f}秒")
+
+        total_time = time.time() - start_time
+        logger.info(f"お気に入り記事追加API合計時間: {total_time:.4f}秒")
+
         return new_favorite
     except ValueError as ve:
         # 既存登録エラー
@@ -168,11 +181,22 @@ async def remove_favorite_article(
     ),
 ):
     """お気に入りから記事を削除"""
+    start_time = time.time()
     try:
+        # Base64デコード時間計測
+        decode_start = time.time()
         # Base64デコードしてURLを復元
         decoded_link = b64decode(article_link).decode("utf-8")
+        decode_time = time.time() - decode_start
+        logger.info(f"Base64デコード時間: {decode_time:.4f}秒")
 
+        repo_call_start = time.time()
         await favorite_article_repository.remove_favorite_article(decoded_link, user.id)
+        repo_call_time = time.time() - repo_call_start
+        logger.info(f"リポジトリ呼び出し時間: {repo_call_time:.4f}秒")
+
+        total_time = time.time() - start_time
+        logger.info(f"お気に入り記事削除API合計時間: {total_time:.4f}秒")
     except ValueError as ve:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
