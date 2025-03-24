@@ -6,3 +6,4 @@
 **/__pycache__
 **/cdk.out
 commands/
+dynamodb_data/

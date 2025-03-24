@@ -1,10 +1,22 @@
 from fastapi import FastAPI
 import logging
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 # ロガーの設定
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# 標準出力ハンドラを作成
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# フォーマッタの作成と設定
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+console_handler.setFormatter(formatter)
+
+# ハンドラをロガーに追加
+logger.addHandler(console_handler)
 
 
 # アプリケーション作成関数
@@ -40,21 +52,19 @@ def get_application():
             app.include_router(api_router, prefix="/api/v1")
             logger.info("APIルーターが正常に登録されました")
 
-            # データベース初期化
+            # DynamoDBテーブル初期化
             try:
-                from app.database import engine, Base, get_async_session
-                from app import models
-                from sqlalchemy import select
-                from sqlalchemy.ext.asyncio import AsyncSession
+                from app.dynamodb.init_tables import init_tables
 
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-                logger.info("データベーステーブルが正常に初期化されました")
-            except Exception as db_error:
+                logger.info("DynamoDBテーブルの初期化を開始します...")
+                result = await init_tables()
+                logger.info(f"DynamoDBテーブル初期化結果: {result}")
+            except Exception as dynamo_error:
                 logger.error(
-                    f"データベース初期化中にエラーが発生しました: {str(db_error)}"
+                    f"DynamoDBテーブル初期化中にエラーが発生しました: {str(dynamo_error)}"
                 )
-                # データベースエラーでもアプリケーションは起動させる
+                # エラーでもアプリケーションは起動させる
+
         except Exception as e:
             logger.error(f"アプリケーション起動中にエラーが発生しました: {str(e)}")
             # エラーが発生してもアプリケーションは起動させる

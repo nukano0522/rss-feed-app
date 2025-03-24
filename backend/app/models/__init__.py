@@ -1,10 +1,4 @@
-from .user import User
-from .feed import Feed, ReadArticle, FavoriteArticle, AiSummary
+# DynamoDBを使用するようになったため、SQLAlchemyモデルはありません
+# このファイルはライブラリの後方互換性のために残しています
 
-__all__ = [
-    "User",
-    "Feed",
-    "ReadArticle",
-    "FavoriteArticle",
-    "AiSummary",
-]
+__all__ = []

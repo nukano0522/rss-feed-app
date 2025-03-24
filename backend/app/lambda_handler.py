@@ -7,8 +7,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # ロガーの設定
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# 標準出力ハンドラを作成
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# フォーマッタの作成と設定
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+console_handler.setFormatter(formatter)
+
+# ハンドラをロガーに追加
+logger.addHandler(console_handler)
 
 # グローバル変数としてアプリケーションを保持
 app = None

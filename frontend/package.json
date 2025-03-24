@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
-    "@types/react": "^18.3.18",
+    "@types/react": "^18.3.19",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^9.8.8",
@@ -54,6 +54,9 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.7.3",
     "vite": "^5.0.8"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.6.1"
   },
   "resolutions": {
     "react-router-dom": "^6.21.3"

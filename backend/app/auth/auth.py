@@ -7,7 +7,7 @@ from fastapi_users.authentication import (
     JWTStrategy,
 )
 from ..models.user import User
-from .users import get_user_db
+from .users import get_dynamo_user_db
 
 SECRET = "YOUR-SECRET-KEY"  # 本番環境では環境変数から取得すること
 
@@ -34,7 +34,7 @@ auth_backend = AuthenticationBackend(
 )
 
 
-async def get_user_manager(user_db=Depends(get_user_db)):
+async def get_user_manager(user_db=Depends(get_dynamo_user_db)):
     yield UserManager(user_db)
 
 

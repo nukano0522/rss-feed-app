@@ -110,10 +110,8 @@ const ExternalArticleSheet: React.FC<ExternalArticleSheetProps> = ({
           記事を追加
         </Button>
       </SheetTrigger>
-      <SheetContent className="sm:max-w-[500px]">
-        <SheetHeader>
-          <SheetTitle>記事をお気に入りに追加</SheetTitle>
-        </SheetHeader>
+      <SheetContent className="sm:max-w-[500px] max-h-[100dvh] overflow-y-auto">
+        <SheetTitle>記事をお気に入りに追加</SheetTitle>
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -237,11 +235,11 @@ const ExternalArticleSheet: React.FC<ExternalArticleSheetProps> = ({
           </div>
         </div>
 
-        <SheetFooter className="pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <SheetFooter className="pt-4 mt-2 bg-background flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
             キャンセル
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
             追加する
           </Button>
         </SheetFooter>
